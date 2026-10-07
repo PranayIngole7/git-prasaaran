@@ -1,19 +1,25 @@
-import { useParams } from 'react-router-dom'
-import { Badge } from '../../../components/ui/Badge'
+import { Activity } from 'lucide-react'
+import { Card } from '../../../components/ui/Card'
 import { PageHeader } from '../../../components/ui/PageHeader'
-import { PlaceholderCard } from '../../../components/ui/PlaceholderCard'
 
 export function RepositoryActivityPage() {
-  const { repositoryId } = useParams<{ repositoryId: string }>()
-
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
-        title="Repository activity"
-        actions={<Badge tone="info">{repositoryId}</Badge>}
+        title="Repository Activity"
+        description="Activity for this repository."
       />
 
-      <PlaceholderCard message="Repository activity will appear here." />
-    </>
+      <Card>
+        <Activity className="mb-3 h-5 w-5 text-slate-600" />
+        <h2 className="font-semibold text-slate-900">
+          Activity API not connected
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-slate-600">
+          Repository activity will be connected when the backend exposes the
+          required activity endpoint.
+        </p>
+      </Card>
+    </div>
   )
 }
