@@ -36,3 +36,6 @@ gitprasaaran:
     branch: ${GITHUB_BRANCH:main}
     content-path: ${GITHUB_CONTENT_PATH:docs}
     token: ${GITHUB_TOKEN:}
+
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

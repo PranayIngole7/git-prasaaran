@@ -5,6 +5,7 @@ import { DashboardPage } from '../../features/dashboard/pages/DashboardPage'
 import { RepositoriesPage } from '../../features/repositories/pages/RepositoriesPage'
 import { RepositoryDetailPage } from '../../features/repositories/pages/RepositoryDetailPage'
 import { RepositoryDocsPage } from '../../features/documentation/pages/RepositoryDocsPage'
+import { DocumentViewerPage } from '../../features/documentation/pages/DocumentViewerPage'
 import { RepositoryActivityPage } from '../../features/activity/pages/RepositoryActivityPage'
 import { ActivityPage } from '../../features/activity/pages/ActivityPage'
 
@@ -18,6 +19,7 @@ export const router = createBrowserRouter([
       { path: '/repositories', element: <RepositoriesPage /> },
       { path: '/repositories/:repositoryId', element: <RepositoryDetailPage /> },
       { path: '/repositories/:repositoryId/docs', element: <RepositoryDocsPage /> },
+      { path: '/repositories/:repositoryId/docs/:slug', element: <DocumentViewerPage /> },
       { path: '/repositories/:repositoryId/activity', element: <RepositoryActivityPage /> },
       { path: '/activity', element: <ActivityPage /> },
       { path: '*', element: <Navigate to="/dashboard" replace /> },

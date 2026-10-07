@@ -22,16 +22,16 @@ paths:
       tags:
         - Documents
       summary: List published documents
-      operationId: listDocuments
+      operationId: getDocuments
       responses:
         "200":
-          description: Documents retrieved successfully
+          description: All available documents
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/DocumentSummary"
+                  $ref: "#/components/schemas/Document"
 
   /api/v1/documents/{slug}:
     get:
@@ -46,14 +46,13 @@ paths:
           description: Document slug
           schema:
             type: string
-            example: getting-started
       responses:
         "200":
-          description: Document retrieved successfully
+          description: The document
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DocumentResponse"
+                $ref: "#/components/schemas/Document"
 
         "404":
           description: Document not found
@@ -121,11 +120,14 @@ paths:
 
 components:
   schemas:
-    DocumentSummary:
+    Document:
       type: object
       required:
         - slug
         - title
+        - content
+        - html
+        - sourcePath
       properties:
         slug:
           type: string
@@ -137,34 +139,15 @@ components:
           type: string
           nullable: true
           example: Introduction to Git-Prasaaran
-        updatedAt:
+        content:
           type: string
-          format: date-time
-          nullable: true
-
-    DocumentResponse:
-      type: object
-      required:
-        - slug
-        - title
-        - html
-      properties:
-        slug:
-          type: string
-          example: getting-started
-        title:
-          type: string
-          example: Getting Started
-        description:
-          type: string
-          nullable: true
+          description: Raw Markdown source
         html:
           type: string
-          description: Sanitized rendered HTML
-        updatedAt:
+          description: Sanitized HTML rendered by the backend
+        sourcePath:
           type: string
-          format: date-time
-          nullable: true
+          example: docs/architecture.md
 
     ErrorResponse:
       type: object
