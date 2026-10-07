@@ -1,0 +1,189 @@
+openapi: 3.0.3
+
+info:
+  title: Git-Prasaaran API
+  description: Git-backed Markdown documentation publishing API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: Documents
+    description: Published documentation
+  - name: Webhooks
+    description: GitHub webhook integration
+  - name: Health
+    description: Application health
+
+paths:
+  /api/v1/documents:
+    get:
+      tags:
+        - Documents
+      summary: List published documents
+      operationId: listDocuments
+      responses:
+        "200":
+          description: Documents retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocumentSummary"
+
+  /api/v1/documents/{slug}:
+    get:
+      tags:
+        - Documents
+      summary: Get a published document
+      operationId: getDocument
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: Document slug
+          schema:
+            type: string
+            example: getting-started
+      responses:
+        "200":
+          description: Document retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentResponse"
+
+        "404":
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/webhooks/github:
+    post:
+      tags:
+        - Webhooks
+      summary: Process a GitHub webhook
+      operationId: processGithubWebhook
+      parameters:
+        - name: X-Hub-Signature-256
+          in: header
+          required: true
+          description: GitHub HMAC SHA-256 signature
+          schema:
+            type: string
+            example: sha256=abc123
+        - name: X-GitHub-Event
+          in: header
+          required: true
+          description: GitHub event type
+          schema:
+            type: string
+            example: push
+        - name: X-GitHub-Delivery
+          in: header
+          required: true
+          description: Unique GitHub delivery identifier
+          schema:
+            type: string
+            example: 72d3162e-cc78-11e3-81ab-4c9367b1baf2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Webhook accepted
+        "400":
+          description: Invalid webhook request
+        "401":
+          description: Invalid webhook signature
+
+  /api/v1/health:
+    get:
+      tags:
+        - Health
+      summary: Check application health
+      operationId: health
+      responses:
+        "200":
+          description: Application is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+components:
+  schemas:
+    DocumentSummary:
+      type: object
+      required:
+        - slug
+        - title
+      properties:
+        slug:
+          type: string
+          example: getting-started
+        title:
+          type: string
+          example: Getting Started
+        description:
+          type: string
+          nullable: true
+          example: Introduction to Git-Prasaaran
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    DocumentResponse:
+      type: object
+      required:
+        - slug
+        - title
+        - html
+      properties:
+        slug:
+          type: string
+          example: getting-started
+        title:
+          type: string
+          example: Getting Started
+        description:
+          type: string
+          nullable: true
+        html:
+          type: string
+          description: Sanitized rendered HTML
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: DOCUMENT_NOT_FOUND
+        message:
+          type: string
+          example: Document not found
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: UP
