@@ -28,3 +28,11 @@ management:
     web:
       exposure:
         include: health,info
+
+gitprasaaran:
+  github:
+    owner: ${GITHUB_OWNER:}
+    repository: ${GITHUB_REPOSITORY:}
+    branch: ${GITHUB_BRANCH:main}
+    content-path: ${GITHUB_CONTENT_PATH:docs}
+    token: ${GITHUB_TOKEN:}
