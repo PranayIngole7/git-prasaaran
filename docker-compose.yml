@@ -1,0 +1,32 @@
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: git-prasaaran-postgres
+    environment:
+      POSTGRES_DB: gitprasaaran
+      POSTGRES_USER: gitprasaaran
+      POSTGRES_PASSWORD: gitprasaaran
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gitprasaaran -d gitprasaaran"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: git-prasaaran-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
