@@ -45,28 +45,59 @@ PostgreSQL stores application metadata only.
 
 Redis stores cached processed documents.
 
-## Document Retrieval
+## Application Repository Context
+
+A Git-Prasaaran Repository is an application-level configuration and context
+boundary with a stable internal ID. Its PostgreSQL metadata identifies the
+external GitHub owner, repository name, branch, and content path to use for
+document retrieval. The external GitHub repository remains the source of
+truth for the Markdown content; PostgreSQL does not store that content.
+
+Repository-scoped document requests resolve the selected application
+Repository before retrieval. The context is passed explicitly through the
+document service and GitHub integration.
+
+## Repository-Scoped Document Retrieval
+
+The repository-scoped API is:
+
 ```text
-Request
+GET /api/v1/repositories/{repositoryId}/documents
+GET /api/v1/repositories/{repositoryId}/documents/{slug}
+```
+
+The list operation retrieves documents using the selected repository
+configuration and does not use list caching. A single-document request uses
+the repository-scoped cache described below.
+
+```text
+Repository-scoped document request
   ↓
-Redis lookup
+Resolve application Repository by internal ID (PostgreSQL metadata)
   ↓
-Cache hit ──────→ Response
+Use owner/name/branch/contentPath as explicit retrieval context
+  ↓
+Single document? ── yes ──→ Redis lookup: document:{repositoryId}:{slug}
+  │                                      │
+  │                                      └─ hit ──→ API response
   │
-  └─ Cache miss
+  └─ List, or single-document cache miss
         ↓
-      GitHub
+      GitHub document retrieval
         ↓
-   Markdown parsing
-        ↓
-   HTML rendering
+   Markdown parsing and HTML rendering
         ↓
    HTML sanitization
         ↓
-      Redis
+   Single document? ── yes ──→ Write repository-scoped Redis cache
         ↓
-     Response
+   Repository-scoped API response
 ```
+
+Redis is only a cache. A repository-specific key includes the stable internal
+repository ID, so documents with the same slug from different application
+repositories do not share cache entries. The existing global document
+retrieval path remains available for the legacy `/api/v1/documents` routes.
 
 ## Webhook Processing
 ```text
@@ -82,6 +113,17 @@ Webhook event recording
    ↓
 Redis cache invalidation
 ```
+
+Webhook processing is not yet associated with an application Repository
+context. Repository-aware webhook association and scoped cache invalidation
+are intentionally deferred.
+
+## Future Agent Context
+
+Future AI, MCP, and agent capabilities are expected to receive an explicit
+application Repository context, rather than relying on an implicit global
+GitHub repository. Those capabilities are not implemented by the repository
+document API.
 
 ## Backend Boundaries
 ```text

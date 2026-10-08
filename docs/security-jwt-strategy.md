@@ -126,6 +126,7 @@ The current Spring Security configuration ignores CSRF protection for:
 ```text
 POST /api/v1/auth/login
 /api/v1/webhooks/**
+/api/v1/repositories/**
 ```
 
 GitHub webhook authenticity is provided independently through HMAC-SHA256
@@ -153,10 +154,15 @@ ROLE_ADMIN
 Role information is carried by the JWT and restored into the authenticated
 security context.
 
-Phase 7 establishes the role infrastructure, but fine-grained
-role-specific endpoint restrictions are future work. The current protected
-API boundary primarily distinguishes authenticated from unauthenticated
-requests.
+Authorization currently uses URL-based Spring Security request matchers in
+`SecurityConfig`; method-level authorization is not used. Authenticated users
+may list and view repositories, including documents retrieved through a
+repository context. Only users with the `ADMIN` role may create or update a
+repository. An administrator can deactivate a repository by setting
+`active` to `false`; repository deletion is not supported.
+
+Repository authorization is not based on ownership or user-to-repository
+relationships. All authenticated users share the repository read policy.
 
 ## Public and Protected API Surface
 
@@ -170,12 +176,26 @@ POST /api/v1/webhooks/**
 POST /api/v1/auth/login
 ```
 
-The following endpoint requires authentication:
+The following endpoints require authentication:
 
 ```text
-GET /api/v1/me
+GET   /api/v1/me
+GET   /api/v1/repositories
+GET   /api/v1/repositories/{repositoryId}
+GET   /api/v1/repositories/{repositoryId}/documents
+GET   /api/v1/repositories/{repositoryId}/documents/{slug}
 ```
 
+The following repository operations require authentication and the `ADMIN`
+role:
+
+```text
+POST  /api/v1/repositories
+PATCH /api/v1/repositories/{repositoryId}
+```
+
+Existing `/api/v1/documents/**` endpoints remain public, and GitHub webhook
+requests continue to use signature verification rather than user JWTs.
 Other endpoints require authentication unless explicitly permitted by the
 security configuration.
 
@@ -190,6 +210,8 @@ The implementation follows these requirements:
 * Bearer tokens must pass JWT validation before establishing authentication.
 * Protected endpoints must fail closed.
 * Authentication and authorization remain separate concerns.
+* Repository endpoints use the current URL-based authorization rules.
+* Repository API responses do not expose GitHub credentials or tokens.
 * Access tokens are short-lived.
 * Frontend access tokens are kept in application memory.
 
@@ -230,7 +252,9 @@ Phase 7 security verification includes:
 * role exposure
 * multiple-role handling
 
-The full backend test suite passed with 59 tests.
+The backend test suite verifies the current authentication and authorization
+behavior, including protected repository reads and administrator-only
+repository writes.
 
 ### Frontend
 
@@ -249,7 +273,6 @@ The following are intentionally outside the current JWT implementation:
 * refresh-token flow
 * token revocation
 * persistent browser authentication
-* fine-grained endpoint role authorization
 * production-grade secret rotation
 * additional security hardening such as rate limiting and security-header
   policy

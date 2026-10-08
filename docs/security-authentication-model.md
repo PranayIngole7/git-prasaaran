@@ -90,10 +90,17 @@ ROLE_ADMIN
 Role information is available to the authenticated security context and is
 included in issued JWTs.
 
-The current Phase 7 implementation establishes the role and authorization
-infrastructure, but fine-grained role restrictions are not yet applied to
-individual business endpoints. Protected endpoints currently require
-authentication unless explicitly configured as public.
+Authorization is currently configured with URL-based Spring Security
+request matchers in `SecurityConfig`; method-level authorization is not used.
+The repository API rules are:
+
+* authenticated users may list and view repositories
+* only users with the `ADMIN` role may create or update repositories
+* updating `active` to `false` deactivates a repository
+* repository deletion is not supported
+
+Repository authorization is not ownership-based. There are no user-to-
+repository ownership or multi-user access relationships yet.
 
 ## Protected API Boundaries
 
@@ -115,6 +122,23 @@ GET /api/v1/me
 
 It requires a valid JWT and returns the authenticated user's email and
 assigned roles.
+
+Repository endpoints are protected by the same JWT filter and URL-based
+authorization rules:
+
+```text
+GET   /api/v1/repositories
+GET   /api/v1/repositories/{repositoryId}
+GET   /api/v1/repositories/{repositoryId}/documents
+GET   /api/v1/repositories/{repositoryId}/documents/{slug}
+POST  /api/v1/repositories                         ADMIN only
+PATCH /api/v1/repositories/{repositoryId}           ADMIN only
+```
+
+Repository reads require authentication. Repository creation and updates,
+including deactivation through `active=false`, require `ADMIN`. No repository
+DELETE operation exists. These rules do not change the existing public
+document endpoints or webhook signature authentication.
 
 Endpoints not explicitly configured as public require authentication.
 
@@ -184,6 +208,10 @@ the `X-GitHub-Delivery` identifier.
 * Webhook requests are authenticated using their GitHub signature.
 * Human-user authentication and webhook authentication remain separate.
 * Authentication and authorization remain separate concerns.
+* Repository access is currently authenticated globally, not scoped by
+  ownership or user-to-repository relationships.
+* Repository configuration responses do not expose GitHub credentials or
+  tokens.
 * Access tokens are kept in frontend memory rather than browser
   localStorage.
 

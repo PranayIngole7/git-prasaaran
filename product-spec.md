@@ -40,6 +40,19 @@ PostgreSQL stores only application metadata.
 
 Redis is used for caching and must never become the source of truth for documentation content.
 
+### Application Repository Context
+
+A Git-Prasaaran Repository is an application-level configuration boundary
+identified by a stable internal repository ID. It references a GitHub
+owner, repository name, branch, and content path, and selects the external
+repository configuration used to retrieve documentation. The external
+GitHub repository remains the content source of truth; PostgreSQL stores
+only the application repository metadata.
+
+Repository ownership and multi-user repository authorization are not
+implemented yet. Repository deletion is not supported; an administrator
+deactivates a repository by setting `active=false`.
+
 ## 4. Target Users
 
 ### 4.1 Documentation Author
