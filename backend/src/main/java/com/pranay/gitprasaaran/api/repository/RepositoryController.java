@@ -1,6 +1,9 @@
 package com.pranay.gitprasaaran.api.repository;
 
+import com.pranay.gitprasaaran.application.document.DocumentService;
 import com.pranay.gitprasaaran.application.repository.RepositoryService;
+import com.pranay.gitprasaaran.domain.document.Document;
+import com.pranay.gitprasaaran.domain.repository.Repository;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,15 +16,18 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/repositories")
 public class RepositoryController {
 
     private final RepositoryService repositoryService;
+    private final DocumentService documentService;
 
-    public RepositoryController(RepositoryService repositoryService) {
+    public RepositoryController(RepositoryService repositoryService, DocumentService documentService) {
         this.repositoryService = repositoryService;
+        this.documentService = documentService;
     }
 
     @GetMapping
@@ -48,6 +54,23 @@ public class RepositoryController {
     @GetMapping("/{repositoryId}")
     public RepositoryResponse findById(@PathVariable Long repositoryId) {
         return RepositoryResponse.from(repositoryService.findById(repositoryId));
+    }
+
+    @GetMapping("/{repositoryId}/documents")
+    public List<Document> findDocuments(@PathVariable Long repositoryId) {
+        Repository repository = repositoryService.findById(repositoryId);
+        return documentService.findAll(repository);
+    }
+
+    @GetMapping("/{repositoryId}/documents/{slug}")
+    public ResponseEntity<Document> findDocumentBySlug(
+            @PathVariable Long repositoryId,
+            @PathVariable String slug
+    ) {
+        Repository repository = repositoryService.findById(repositoryId);
+        Optional<Document> document = documentService.findBySlug(repository, slug);
+        return document.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PatchMapping("/{repositoryId}")
