@@ -50,6 +50,41 @@ class DocumentCacheTest {
     }
 
     @Test
+    void shouldUseRepositoryIdInScopedCacheKeys() {
+        Document repositoryADocument = new Document("readme", "A", "", "A", "<p>A</p>", "docs/readme.md");
+        Document repositoryBDocument = new Document("readme", "B", "", "B", "<p>B</p>", "docs/readme.md");
+        when(valueOperations.get("document:101:readme")).thenReturn(repositoryADocument);
+        when(valueOperations.get("document:202:readme")).thenReturn(repositoryBDocument);
+
+        assertEquals(repositoryADocument, documentCache.get(101L, "readme"));
+        assertEquals(repositoryBDocument, documentCache.get(202L, "readme"));
+
+        verify(valueOperations).get("document:101:readme");
+        verify(valueOperations).get("document:202:readme");
+    }
+
+    @Test
+    void shouldPutDocumentUsingRepositorySpecificKey() {
+        Document document = new Document("readme", "A", "", "A", "<p>A</p>", "docs/readme.md");
+
+        documentCache.put(101L, "readme", document);
+
+        verify(valueOperations).set("document:101:readme", document, Duration.ofMinutes(10));
+    }
+
+    @Test
+    void shouldRejectScopedCacheAccessWithoutPersistedRepositoryId() {
+        org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> documentCache.get(null, "readme")
+        );
+        org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> documentCache.put(0L, "readme", new Document("readme", "A", "", "A", "<p>A</p>", "readme.md"))
+        );
+    }
+
+    @Test
     void shouldPutDocumentWithTenMinuteTtl() {
         Document document = new Document("team", "Team", "desc", "content", "<h1>Team</h1>", "docs/team.md");
 

@@ -42,12 +42,22 @@ public class DocumentService {
 
     public Optional<Document> findBySlug(Repository repository, String slug) {
         requireActive(repository);
-        return documentRepository.findBySlug(repository, slug);
+        Document cachedDocument = documentCache.get(repository.id(), slug);
+        if (cachedDocument != null) {
+            return Optional.of(cachedDocument);
+        }
+
+        Optional<Document> document = documentRepository.findBySlug(repository, slug);
+        document.ifPresent(value -> documentCache.put(repository.id(), slug, value));
+        return document;
     }
 
     private void requireActive(Repository repository) {
         if (repository == null) {
             throw new IllegalArgumentException("Repository is required");
+        }
+        if (repository.id() == null || repository.id() <= 0) {
+            throw new IllegalArgumentException("A persisted repository ID is required");
         }
         if (!repository.active()) {
             throw new IllegalStateException("Repository is inactive: " + repository.id());

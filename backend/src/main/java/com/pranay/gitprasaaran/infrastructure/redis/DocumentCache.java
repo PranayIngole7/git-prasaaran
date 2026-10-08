@@ -32,12 +32,33 @@ public class DocumentCache {
         }
     }
 
+    public Document get(Long repositoryId, String slug) {
+        String key = buildCacheKey(repositoryId, slug);
+        try {
+            return redisTemplate.opsForValue().get(key);
+        } catch (RuntimeException ex) {
+            log.warn("Redis cache read failed for repository '{}' and slug '{}' using key '{}'. Falling back to GitHub.",
+                    repositoryId, slug, key, ex);
+            return null;
+        }
+    }
+
     public void put(String slug, Document document) {
         String key = buildCacheKey(slug);
         try {
             redisTemplate.opsForValue().set(key, document, TTL);
         } catch (RuntimeException ex) {
             log.warn("Redis cache write failed for slug '{}' using key '{}'.", slug, key, ex);
+        }
+    }
+
+    public void put(Long repositoryId, String slug, Document document) {
+        String key = buildCacheKey(repositoryId, slug);
+        try {
+            redisTemplate.opsForValue().set(key, document, TTL);
+        } catch (RuntimeException ex) {
+            log.warn("Redis cache write failed for repository '{}' and slug '{}' using key '{}'.",
+                    repositoryId, slug, key, ex);
         }
     }
 
@@ -56,5 +77,15 @@ public class DocumentCache {
                 + githubProperties.repository() + ":"
                 + githubProperties.branch() + ":"
                 + slug;
+    }
+
+    private String buildCacheKey(Long repositoryId, String slug) {
+        if (repositoryId == null || repositoryId <= 0) {
+            throw new IllegalArgumentException("A persisted repository ID is required for repository document caching");
+        }
+        if (slug == null || slug.isBlank()) {
+            throw new IllegalArgumentException("Document slug must not be blank");
+        }
+        return "document:" + repositoryId + ":" + slug;
     }
 }
