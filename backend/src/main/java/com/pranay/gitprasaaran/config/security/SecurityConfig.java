@@ -2,14 +2,15 @@ package com.pranay.gitprasaaran.config.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -31,7 +32,8 @@ public class SecurityConfig {
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .csrf(csrf -> csrf.ignoringRequestMatchers(
                                                 "/api/v1/auth/login",
-                                                "/api/v1/webhooks/**"))
+                                                "/api/v1/webhooks/**",
+                                                "/api/v1/repositories/**"))
                                 .exceptionHandling(exceptionHandling -> exceptionHandling
                                                 .authenticationEntryPoint(
                                                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
@@ -44,6 +46,8 @@ public class SecurityConfig {
                                                                 "/api/v1/auth/login")
                                                 .permitAll()
                                                 .requestMatchers("/api/v1/me").authenticated()
+                                                .requestMatchers(HttpMethod.POST, "/api/v1/repositories").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.PATCH, "/api/v1/repositories/**").hasRole("ADMIN")
                                                 .anyRequest().authenticated());
                 http.addFilterBefore(
                                 jwtAuthenticationFilter,
