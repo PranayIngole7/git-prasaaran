@@ -30,6 +30,7 @@ public class SecurityConfig {
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .csrf(csrf -> csrf.ignoringRequestMatchers(
+                                                "/api/v1/auth/login",
                                                 "/api/v1/webhooks/**"))
                                 .exceptionHandling(exceptionHandling -> exceptionHandling
                                                 .authenticationEntryPoint(
@@ -39,7 +40,8 @@ public class SecurityConfig {
                                                                 "/api/v1/health",
                                                                 "/actuator/health",
                                                                 "/api/v1/documents/**",
-                                                                "/api/v1/webhooks/**")
+                                                                "/api/v1/webhooks/**",
+                                                                "/api/v1/auth/login")
                                                 .permitAll()
                                                 .requestMatchers("/api/v1/me").authenticated()
                                                 .anyRequest().authenticated());
