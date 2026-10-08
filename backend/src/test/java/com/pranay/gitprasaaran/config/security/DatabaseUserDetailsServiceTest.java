@@ -1,0 +1,63 @@
+package com.pranay.gitprasaaran.config.security;
+
+import com.pranay.gitprasaaran.infrastructure.persistence.UserEntity;
+import com.pranay.gitprasaaran.infrastructure.persistence.UserRepository;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class DatabaseUserDetailsServiceTest {
+
+    private final UserRepository userRepository = mock(UserRepository.class);
+
+    private final DatabaseUserDetailsService userDetailsService = new DatabaseUserDetailsService(userRepository);
+
+    @Test
+    void shouldLoadEnabledUserByEmail() {
+        UserEntity user = new UserEntity("user@example.com", "hashed-password");
+
+        when(userRepository.findByEmail("user@example.com"))
+                .thenReturn(Optional.of(user));
+
+        UserDetails result = userDetailsService.loadUserByUsername("user@example.com");
+
+        assertEquals("user@example.com", result.getUsername());
+        assertEquals("hashed-password", result.getPassword());
+        assertTrue(result.isEnabled());
+
+        verify(userRepository).findByEmail("user@example.com");
+    }
+
+    @Test
+    void shouldRejectUnknownUser() {
+        when(userRepository.findByEmail("missing@example.com"))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                UsernameNotFoundException.class,
+                () -> userDetailsService.loadUserByUsername(
+                        "missing@example.com"));
+
+        verify(userRepository).findByEmail("missing@example.com");
+    }
+
+    @Test
+    void shouldReturnDisabledUserAsDisabled() {
+        UserEntity user = new UserEntity("disabled@example.com", "hashed-password");
+
+        user.disable();
+
+        when(userRepository.findByEmail("disabled@example.com"))
+                .thenReturn(Optional.of(user));
+
+        UserDetails result = userDetailsService.loadUserByUsername(
+                "disabled@example.com");
+
+        assertFalse(result.isEnabled());
+    }
+}
