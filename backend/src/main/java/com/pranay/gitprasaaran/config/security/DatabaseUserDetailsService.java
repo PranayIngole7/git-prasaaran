@@ -28,7 +28,10 @@ public class DatabaseUserDetailsService implements UserDetailsService {
         return User.withUsername(user.getEmail())
                 .password(user.getPasswordHash())
                 .disabled(!user.isEnabled())
-                .authorities("ROLE_USER")
+                .authorities(
+                        user.getRoles().stream()
+                                .map(role -> "ROLE_" + role.getName().name())
+                                .toArray(String[]::new))
                 .build();
     }
 }
