@@ -1,2 +1,2 @@
-export { apiClient } from './client'
+export { apiClient, setApiAccessToken } from './client'
 export { getErrorMessage, isNotFoundError } from './errors'
