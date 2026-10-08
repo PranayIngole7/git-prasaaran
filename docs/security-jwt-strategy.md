@@ -98,21 +98,4 @@ Implementation of:
 - role-based authorization
   
 is handled by subsequent Phase 7 subphases.
-
-
 ---
-
-## 7.4.12 One important correction before implementation
-
-There's a subtle architectural choice here:
-
-**HS256 is acceptable for our V1 modular monolith, but it creates a shared-secret model.**
-
-If Git-Prasaaran later becomes multiple independently deployed services, I'd strongly consider **RS256/ES256 asymmetric signing** so services can verify tokens using a public key without possessing the signing secret.
-
-For the current architecture:
-
-```text
-Modular monolith → HS256 ✅
-Future distributed services → consider asymmetric signing
-```
