@@ -2,6 +2,7 @@ package com.pranay.gitprasaaran.application.document;
 
 import com.pranay.gitprasaaran.domain.document.Document;
 import com.pranay.gitprasaaran.domain.document.DocumentRepository;
+import com.pranay.gitprasaaran.domain.repository.Repository;
 import com.pranay.gitprasaaran.infrastructure.redis.DocumentCache;
 import org.springframework.stereotype.Service;
 
@@ -32,5 +33,24 @@ public class DocumentService {
         Optional<Document> document = documentRepository.findBySlug(slug);
         document.ifPresent(value -> documentCache.put(slug, value));
         return document;
+    }
+
+    public List<Document> findAll(Repository repository) {
+        requireActive(repository);
+        return documentRepository.findAll(repository);
+    }
+
+    public Optional<Document> findBySlug(Repository repository, String slug) {
+        requireActive(repository);
+        return documentRepository.findBySlug(repository, slug);
+    }
+
+    private void requireActive(Repository repository) {
+        if (repository == null) {
+            throw new IllegalArgumentException("Repository is required");
+        }
+        if (!repository.active()) {
+            throw new IllegalStateException("Repository is inactive: " + repository.id());
+        }
     }
 }

@@ -18,13 +18,22 @@ public class GitHubClient {
     }
 
     public String getFile(String path) {
+        return getFile(
+                properties.owner(),
+                properties.repository(),
+                properties.branch(),
+                path
+        );
+    }
+
+    public String getFile(String owner, String repository, String branch, String path) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/repos/{owner}/{repo}/contents/{path}")
-                        .queryParam("ref", properties.branch())
+                        .queryParam("ref", branch)
                         .build(
-                                properties.owner(),
-                                properties.repository(),
+                                owner,
+                                repository,
                                 path
                         ))
                 .headers(headers -> applyAuthorization(headers))
@@ -34,13 +43,22 @@ public class GitHubClient {
     }
 
     public String listDirectory(String path) {
+        return listDirectory(
+                properties.owner(),
+                properties.repository(),
+                properties.branch(),
+                path
+        );
+    }
+
+    public String listDirectory(String owner, String repository, String branch, String path) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/repos/{owner}/{repo}/contents/{path}")
-                        .queryParam("ref", properties.branch())
+                        .queryParam("ref", branch)
                         .build(
-                                properties.owner(),
-                                properties.repository(),
+                                owner,
+                                repository,
                                 path
                         ))
                 .headers(headers -> applyAuthorization(headers))
