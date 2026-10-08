@@ -27,6 +27,7 @@ public class SecurityConfig {
                                                                 "/api/v1/documents/**",
                                                                 "/api/v1/webhooks/**")
                                                 .permitAll()
+                                                .requestMatchers("/api/v1/me").authenticated()
                                                 .anyRequest().authenticated());
 
                 return http.build();
