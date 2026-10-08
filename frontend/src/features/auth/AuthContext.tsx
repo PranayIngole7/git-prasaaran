@@ -1,12 +1,16 @@
 import {
   useCallback,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
 import { getCurrentUser, login as loginRequest } from './api'
 import { AuthContext, type AuthContextValue } from './auth-context'
-import { setApiAccessToken } from '../../lib/api'
+import {
+  setApiAccessToken,
+  setUnauthorizedHandler,
+} from '../../lib/api'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -19,6 +23,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setApiAccessToken(null)
     setCurrentUser(null)
   }, [])
+
+  const handleUnauthorized = useCallback(() => {
+    setAccessToken(null)
+    setApiAccessToken(null)
+    setCurrentUser(null)
+  }, [])
+
+  useEffect(() => {
+    setUnauthorizedHandler(handleUnauthorized)
+
+    return () => {
+      setUnauthorizedHandler(null)
+    }
+  }, [handleUnauthorized])
 
   const login = useCallback(async (email: string, password: string) => {
     const response = await loginRequest({ email, password })

@@ -10,9 +10,14 @@ export const apiClient = axios.create({
 })
 
 let accessToken: string | null = null
+let unauthorizedHandler: (() => void) | null = null
 
 export function setApiAccessToken(token: string | null) {
   accessToken = token
+}
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler
 }
 
 apiClient.interceptors.request.use((config) => {
@@ -22,3 +27,27 @@ apiClient.interceptors.request.use((config) => {
 
   return config
 })
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        accessToken = null
+        unauthorizedHandler?.()
+
+        if (window.location.pathname !== '/login') {
+          window.location.assign('/login')
+        }
+      }
+
+      if (error.response?.status === 403) {
+        if (window.location.pathname !== '/forbidden') {
+          window.location.assign('/forbidden')
+        }
+      }
+    }
+
+    return Promise.reject(error)
+  },
+)
