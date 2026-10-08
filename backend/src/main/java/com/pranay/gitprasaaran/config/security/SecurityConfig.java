@@ -9,16 +9,26 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
+
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+        public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+                this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        }
 
         @Bean
         SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
                                 .cors(cors -> {
                                 })
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .csrf(csrf -> csrf.ignoringRequestMatchers(
                                                 "/api/v1/webhooks/**"))
                                 .exceptionHandling(exceptionHandling -> exceptionHandling
@@ -33,7 +43,9 @@ public class SecurityConfig {
                                                 .permitAll()
                                                 .requestMatchers("/api/v1/me").authenticated()
                                                 .anyRequest().authenticated());
-
+                http.addFilterBefore(
+                                jwtAuthenticationFilter,
+                                UsernamePasswordAuthenticationFilter.class);
                 return http.build();
         }
 
