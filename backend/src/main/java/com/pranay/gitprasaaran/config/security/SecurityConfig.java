@@ -33,7 +33,8 @@ public class SecurityConfig {
                                 .csrf(csrf -> csrf.ignoringRequestMatchers(
                                                 "/api/v1/auth/login",
                                                 "/api/v1/webhooks/**",
-                                                "/api/v1/repositories/**"))
+                                                "/api/v1/repositories/**",
+                                                "/api/v1/assistant/**"))
                                 .exceptionHandling(exceptionHandling -> exceptionHandling
                                                 .authenticationEntryPoint(
                                                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))

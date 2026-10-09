@@ -10,6 +10,7 @@ import { RepositoryDocsPage } from '../../features/documentation/pages/Repositor
 import { DocumentViewerPage } from '../../features/documentation/pages/DocumentViewerPage'
 import { ActivityPage } from '../../features/activity/pages/ActivityPage'
 import { RepositoryActivityPage } from '../../features/activity/pages/RepositoryActivityPage'
+import { AssistantPage } from '../../features/assistant/pages/AssistantPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
             element: <DocumentViewerPage />,
           },
           { path: '/activity', element: <ActivityPage /> },
+          { path: '/assistant', element: <AssistantPage /> },
           { path: '*', element: <Navigate to="/dashboard" replace /> },
         ],
       },

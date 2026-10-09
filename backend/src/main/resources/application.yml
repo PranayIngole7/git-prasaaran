@@ -45,3 +45,9 @@ gitprasaaran:
       secret: ${JWT_SECRET}
       expiration: 900
       issuer: git-prasaaran
+
+  assistant:
+    gemini:
+      base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_MODEL:gemini-3.8-flash}

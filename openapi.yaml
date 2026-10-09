@@ -17,6 +17,8 @@ tags:
     description: GitHub webhook integration
   - name: Activity
     description: Persisted GitHub webhook activity
+  - name: Assistant
+    description: Repository documentation Q&A
   - name: Health
     description: Application health
 
@@ -467,6 +469,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
 
+
+  /api/v1/assistant/ask:
+    post:
+      tags:
+        - Assistant
+      summary: Ask a question about a registered repository's Markdown documentation
+      description: Requires authentication. The answer is generated from bounded documentation context for the selected active repository.
+      operationId: askDocumentationAssistant
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssistantRequest'
+      responses:
+        '200':
+          description: Answer generated from repository documentation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantResponse'
+        '400':
+          description: Invalid request
+        '401':
+          description: Authentication required
+        '409':
+          description: Repository is inactive
+        '422':
+          description: No usable documentation found
+        '503':
+          description: AI provider unavailable
+
 components:
   parameters:
     ActivityPage:
@@ -525,6 +561,35 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    AssistantRequest:
+      type: object
+      required:
+        - repositoryId
+        - question
+      properties:
+        repositoryId:
+          type: integer
+          format: int64
+          minimum: 1
+        question:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    AssistantResponse:
+      type: object
+      required:
+        - answer
+        - sources
+        - model
+      properties:
+        answer:
+          type: string
+        sources:
+          type: array
+          items:
+            type: string
+        model:
+          type: string
     Document:
       type: object
       required:
