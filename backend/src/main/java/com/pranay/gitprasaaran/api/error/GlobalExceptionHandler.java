@@ -4,6 +4,9 @@ import com.pranay.gitprasaaran.application.activity.InvalidActivityQueryExceptio
 import com.pranay.gitprasaaran.application.repository.DuplicateRepositoryException;
 import com.pranay.gitprasaaran.application.repository.RepositoryNotFoundException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.AuthenticationException;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,6 +16,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
 
     @ExceptionHandler(RepositoryNotFoundException.class)
     public ResponseEntity<ApiError> handleRepositoryNotFound(RepositoryNotFoundException ex) {
@@ -53,9 +58,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(AuthenticationException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ApiError handleAuthenticationException(AuthenticationException ex) {
+        return new ApiError(
+                "AUTHENTICATION_FAILED",
+                "Invalid email or password"
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiError handleUnexpectedException(Exception ex) {
+        log.error("Unhandled exception while processing request", ex);
         return new ApiError(
                 "INTERNAL_ERROR",
                 "An unexpected error occurred"
