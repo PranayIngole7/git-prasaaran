@@ -9,6 +9,7 @@ import { RepositoryDetailPage } from '../../features/repositories/pages/Reposito
 import { RepositoryDocsPage } from '../../features/documentation/pages/RepositoryDocsPage'
 import { DocumentViewerPage } from '../../features/documentation/pages/DocumentViewerPage'
 import { ActivityPage } from '../../features/activity/pages/ActivityPage'
+import { RepositoryActivityPage } from '../../features/activity/pages/RepositoryActivityPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -29,6 +30,10 @@ export const router = createBrowserRouter([
           {
             path: '/repositories/:repositoryId/docs',
             element: <RepositoryDocsPage />,
+          },
+          {
+            path: '/repositories/:repositoryId/activity',
+            element: <RepositoryActivityPage />,
           },
           {
             path: '/repositories/:repositoryId/docs/:slug',
