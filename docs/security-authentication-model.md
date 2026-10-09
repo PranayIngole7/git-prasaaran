@@ -131,6 +131,8 @@ GET   /api/v1/repositories
 GET   /api/v1/repositories/{repositoryId}
 GET   /api/v1/repositories/{repositoryId}/documents
 GET   /api/v1/repositories/{repositoryId}/documents/{slug}
+GET   /api/v1/activity
+GET   /api/v1/repositories/{repositoryId}/activity
 POST  /api/v1/repositories                         ADMIN only
 PATCH /api/v1/repositories/{repositoryId}           ADMIN only
 ```

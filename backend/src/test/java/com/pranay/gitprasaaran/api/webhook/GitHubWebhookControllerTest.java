@@ -51,7 +51,15 @@ class GitHubWebhookControllerTest {
         void shouldAcceptValidPushWebhook() throws Exception {
                 String payload = "{\"repository\":{\"full_name\":\"octo/docs\"},\"ref\":\"refs/heads/main\",\"after\":\"abc123\",\"before\":\"def456\",\"deleted\":false,\"commits\":[{\"added\":[\"docs/new.md\"],\"modified\":[\"README.md\"],\"removed\":[]}]}";
                 when(signatureVerifier.isValid(anyString(), eq("sha256=valid"))).thenReturn(true);
-                when(gitHubWebhookProcessingService.process("delivery-123", "push", payload, "refs/heads/main", false))
+                when(gitHubWebhookProcessingService.process(
+                        "delivery-123",
+                        "push",
+                        payload,
+                        "refs/heads/main",
+                        false,
+                        "octo",
+                        "docs"
+                ))
                                 .thenReturn(new WebhookProcessingResult(false, true));
 
                 mockMvc.perform(post("/api/v1/webhooks/github")
@@ -85,7 +93,9 @@ class GitHubWebhookControllerTest {
                                                 org.mockito.ArgumentMatchers.anyString(),
                                                 org.mockito.ArgumentMatchers.anyString(),
                                                 org.mockito.ArgumentMatchers.anyString(),
-                                                org.mockito.ArgumentMatchers.anyBoolean());
+                                                org.mockito.ArgumentMatchers.anyBoolean(),
+                                                org.mockito.ArgumentMatchers.anyString(),
+                                                org.mockito.ArgumentMatchers.anyString());
         }
 
         @Test

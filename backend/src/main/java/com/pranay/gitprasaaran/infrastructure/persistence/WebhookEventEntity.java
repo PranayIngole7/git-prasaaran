@@ -21,6 +21,9 @@ public class WebhookEventEntity {
     @Column(name = "event_id", nullable = false, unique = true)
     private String eventId;
 
+    @Column(name = "repository_id")
+    private Long repositoryId;
+
     @Column(name = "event_type", nullable = false)
     private String eventType;
 
@@ -40,10 +43,15 @@ public class WebhookEventEntity {
     }
 
     public WebhookEventEntity(String eventId, String eventType, String commitSha, String status) {
+        this(eventId, eventType, commitSha, status, null);
+    }
+
+    public WebhookEventEntity(String eventId, String eventType, String commitSha, String status, Long repositoryId) {
         this.eventId = eventId;
         this.eventType = eventType;
         this.commitSha = commitSha;
         this.status = status;
+        this.repositoryId = repositoryId;
     }
 
     @PrePersist
@@ -59,6 +67,10 @@ public class WebhookEventEntity {
 
     public String getEventId() {
         return eventId;
+    }
+
+    public Long getRepositoryId() {
+        return repositoryId;
     }
 
     public String getEventType() {

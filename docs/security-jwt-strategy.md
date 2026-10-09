@@ -184,6 +184,8 @@ GET   /api/v1/repositories
 GET   /api/v1/repositories/{repositoryId}
 GET   /api/v1/repositories/{repositoryId}/documents
 GET   /api/v1/repositories/{repositoryId}/documents/{slug}
+GET   /api/v1/activity
+GET   /api/v1/repositories/{repositoryId}/activity
 ```
 
 The following repository operations require authentication and the `ADMIN`

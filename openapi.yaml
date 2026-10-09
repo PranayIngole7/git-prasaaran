@@ -15,6 +15,8 @@ tags:
     description: Application repository contexts and their published documents
   - name: Webhooks
     description: GitHub webhook integration
+  - name: Activity
+    description: Persisted GitHub webhook activity
   - name: Health
     description: Application health
 
@@ -287,6 +289,84 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /api/v1/activity:
+    get:
+      tags:
+        - Activity
+      summary: List webhook activity
+      description: Requires an authenticated user. Results are ordered newest first; historical events may have a null repositoryId.
+      operationId: getActivity
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ActivityPage"
+        - $ref: "#/components/parameters/ActivitySize"
+        - $ref: "#/components/parameters/ActivityStatus"
+        - $ref: "#/components/parameters/ActivityEventType"
+        - $ref: "#/components/parameters/ActivityFrom"
+        - $ref: "#/components/parameters/ActivityTo"
+      responses:
+        "200":
+          description: A page of webhook events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityPage"
+        "400":
+          description: Invalid pagination, filter, or date range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Authentication is required
+
+  /api/v1/repositories/{repositoryId}/activity:
+    get:
+      tags:
+        - Activity
+        - Repositories
+      summary: List activity for a repository
+      description: Requires an authenticated user. Only webhook events associated with this repository are returned.
+      operationId: getRepositoryActivity
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: repositoryId
+          in: path
+          required: true
+          description: Internal application repository ID
+          schema:
+            type: integer
+            format: int64
+        - $ref: "#/components/parameters/ActivityPage"
+        - $ref: "#/components/parameters/ActivitySize"
+        - $ref: "#/components/parameters/ActivityStatus"
+        - $ref: "#/components/parameters/ActivityEventType"
+        - $ref: "#/components/parameters/ActivityFrom"
+        - $ref: "#/components/parameters/ActivityTo"
+      responses:
+        "200":
+          description: A page of webhook events associated with the repository
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityPage"
+        "400":
+          description: Invalid pagination, filter, or date range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Authentication is required
+        "404":
+          description: Repository not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /api/v1/webhooks/github:
     post:
       tags:
@@ -323,12 +403,55 @@ paths:
               type: object
               additionalProperties: true
       responses:
+        "202":
+          description: Push delivery accepted; unsupported event types return 200 with status ignored
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - event
+                  - duplicate
+                  - processed
+                properties:
+                  status:
+                    type: string
+                    example: accepted
+                  event:
+                    type: string
+                    example: push
+                  duplicate:
+                    type: boolean
+                  processed:
+                    type: boolean
         "200":
-          description: Webhook accepted
+          description: Unsupported event ignored
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - event
+                properties:
+                  status:
+                    type: string
+                    example: ignored
+                  event:
+                    type: string
         "400":
           description: Invalid webhook request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "401":
           description: Invalid webhook signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /api/v1/health:
     get:
@@ -345,6 +468,57 @@ paths:
                 $ref: "#/components/schemas/HealthResponse"
 
 components:
+  parameters:
+    ActivityPage:
+      name: page
+      in: query
+      required: false
+      description: Zero-based page number
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    ActivitySize:
+      name: size
+      in: query
+      required: false
+      description: Page size
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    ActivityStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [RECEIVED, PROCESSED, FAILED]
+    ActivityEventType:
+      name: eventType
+      in: query
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+    ActivityFrom:
+      name: from
+      in: query
+      required: false
+      description: Inclusive lower bound for createdAt
+      schema:
+        type: string
+        format: date-time
+    ActivityTo:
+      name: to
+      in: query
+      required: false
+      description: Inclusive upper bound for createdAt
+      schema:
+        type: string
+        format: date-time
   securitySchemes:
     BearerAuth:
       type: http
@@ -405,6 +579,71 @@ components:
         message:
           type: string
           example: Repository not found
+
+    ActivityPage:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityEvent"
+        page:
+          type: integer
+          minimum: 0
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+        totalElements:
+          type: integer
+          format: int64
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+
+    ActivityEvent:
+      type: object
+      required:
+        - id
+        - deliveryId
+        - eventType
+        - commitSha
+        - status
+        - createdAt
+        - processedAt
+        - repositoryId
+      properties:
+        id:
+          type: integer
+          format: int64
+        deliveryId:
+          type: string
+        eventType:
+          type: string
+        commitSha:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [RECEIVED, PROCESSED, FAILED]
+        createdAt:
+          type: string
+          format: date-time
+        processedAt:
+          type: string
+          format: date-time
+          nullable: true
+        repositoryId:
+          type: integer
+          format: int64
+          nullable: true
 
     RepositoryCreateRequest:
       type: object

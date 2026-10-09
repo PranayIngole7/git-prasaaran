@@ -9,6 +9,8 @@ public interface RepositoryRepository {
 
     Optional<Repository> findById(Long id);
 
+    List<Repository> findByOwnerAndNameIgnoreCase(String owner, String name);
+
     boolean existsByOwnerAndName(String owner, String name);
 
     Repository save(Repository repository);

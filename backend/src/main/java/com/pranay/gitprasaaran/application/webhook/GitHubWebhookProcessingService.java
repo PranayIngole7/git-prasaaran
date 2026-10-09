@@ -1,5 +1,7 @@
 package com.pranay.gitprasaaran.application.webhook;
 
+import com.pranay.gitprasaaran.domain.repository.Repository;
+import com.pranay.gitprasaaran.domain.repository.RepositoryRepository;
 import com.pranay.gitprasaaran.infrastructure.persistence.WebhookEventEntity;
 import com.pranay.gitprasaaran.infrastructure.persistence.WebhookEventRepository;
 import org.slf4j.Logger;
@@ -18,18 +20,34 @@ public class GitHubWebhookProcessingService {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final WebhookEventRepository webhookEventRepository;
+    private final RepositoryRepository repositoryRepository;
     private final GitHubPushDocumentCacheInvalidator gitHubPushDocumentCacheInvalidator;
 
     public GitHubWebhookProcessingService(
             WebhookEventRepository webhookEventRepository,
+            RepositoryRepository repositoryRepository,
             GitHubPushDocumentCacheInvalidator gitHubPushDocumentCacheInvalidator
     ) {
         this.webhookEventRepository = webhookEventRepository;
+        this.repositoryRepository = repositoryRepository;
         this.gitHubPushDocumentCacheInvalidator = gitHubPushDocumentCacheInvalidator;
     }
 
     @Transactional
     public WebhookProcessingResult process(String deliveryId, String eventType, String payload, String ref, boolean deleted) {
+        return process(deliveryId, eventType, payload, ref, deleted, null, null);
+    }
+
+    @Transactional
+    public WebhookProcessingResult process(
+            String deliveryId,
+            String eventType,
+            String payload,
+            String ref,
+            boolean deleted,
+            String repositoryOwner,
+            String repositoryName
+    ) {
         if (deliveryId == null || deliveryId.isBlank()) {
             return new WebhookProcessingResult(false, false);
         }
@@ -40,7 +58,13 @@ public class GitHubWebhookProcessingService {
         }
 
         String commitSha = extractCommitSha(payload);
-        WebhookEventEntity event = new WebhookEventEntity(deliveryId, normalizeEventType(eventType), commitSha, "RECEIVED");
+        WebhookEventEntity event = new WebhookEventEntity(
+                deliveryId,
+                normalizeEventType(eventType),
+                commitSha,
+                "RECEIVED",
+                findRepositoryId(repositoryOwner, repositoryName)
+        );
         webhookEventRepository.save(event);
 
         try {
@@ -95,5 +119,18 @@ public class GitHubWebhookProcessingService {
         }
 
         return null;
+    }
+
+    private Long findRepositoryId(String owner, String name) {
+        if (owner == null || owner.isBlank() || name == null || name.isBlank()) {
+            return null;
+        }
+
+        var matches = repositoryRepository.findByOwnerAndNameIgnoreCase(owner.trim(), name.trim());
+        if (matches.size() != 1) {
+            return null;
+        }
+        Repository repository = matches.getFirst();
+        return repository.id();
     }
 }

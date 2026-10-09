@@ -51,13 +51,28 @@ public class GitHubWebhookController {
             return ResponseEntity.ok(Map.of("status", "ignored", "event", eventName));
         }
 
+        String repositoryOwner;
+        String repositoryName;
+        String ref;
+        boolean deleted;
         try {
             JsonNode payloadNode = objectMapper.readTree(payload);
-            payloadNode.path("repository").path("full_name").asText();
-            String ref = payloadNode.path("ref").asText(null);
+            JsonNode repositoryNode = payloadNode.path("repository");
+            repositoryOwner = repositoryNode.path("owner").path("login").asText(null);
+            repositoryName = repositoryNode.path("name").asText(null);
+            if (repositoryOwner == null || repositoryName == null) {
+                String fullName = repositoryNode.path("full_name").asText(null);
+                int separator = fullName == null ? -1 : fullName.indexOf('/');
+                if (separator > 0 && separator < fullName.length() - 1) {
+                    repositoryOwner = fullName.substring(0, separator);
+                    repositoryName = fullName.substring(separator + 1);
+                }
+            }
+
+            ref = payloadNode.path("ref").asText(null);
             String after = payloadNode.path("after").asText();
             String before = payloadNode.path("before").asText();
-            boolean deleted = payloadNode.path("deleted").asBoolean(false);
+            deleted = payloadNode.path("deleted").asBoolean(false);
 
             JsonNode commits = payloadNode.path("commits");
             for (JsonNode commit : commits) {
@@ -66,23 +81,26 @@ public class GitHubWebhookController {
                 commit.path("removed");
             }
 
-            WebhookProcessingResult processingResult = gitHubWebhookProcessingService.process(
-                    delivery,
-                    eventName,
-                    payload,
-                    ref,
-                    deleted
-            );
-
-            return ResponseEntity.accepted().body(Map.of(
-                    "status", "accepted",
-                    "event", eventName,
-                    "duplicate", processingResult.duplicate(),
-                    "processed", processingResult.processed()
-            ));
         } catch (Exception ex) {
             return ResponseEntity.badRequest()
                     .body(new ApiError("INVALID_WEBHOOK_PAYLOAD", "Malformed webhook payload"));
         }
+
+        WebhookProcessingResult processingResult = gitHubWebhookProcessingService.process(
+                delivery,
+                eventName,
+                payload,
+                ref,
+                deleted,
+                repositoryOwner,
+                repositoryName
+        );
+
+        return ResponseEntity.accepted().body(Map.of(
+                "status", "accepted",
+                "event", eventName,
+                "duplicate", processingResult.duplicate(),
+                "processed", processingResult.processed()
+        ));
     }
 }

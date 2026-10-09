@@ -7,9 +7,17 @@ import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RepositoryEntityTest {
+
+    @Test
+    void shouldAllowHistoricalWebhookEventWithoutRepositoryAssociation() {
+        WebhookEventEntity event = new WebhookEventEntity("delivery-old", "push", null, "PROCESSED");
+
+        assertNull(event.getRepositoryId());
+    }
 
     @Test
     void shouldMapPersistenceFieldsToDomain() {

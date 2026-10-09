@@ -1,5 +1,6 @@
 package com.pranay.gitprasaaran.api.error;
 
+import com.pranay.gitprasaaran.application.activity.InvalidActivityQueryException;
 import com.pranay.gitprasaaran.application.repository.DuplicateRepositoryException;
 import com.pranay.gitprasaaran.application.repository.RepositoryNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -28,6 +30,18 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleInvalidRequest(MethodArgumentNotValidException ex) {
         return new ApiError("INVALID_REQUEST", "Request validation failed");
+    }
+
+    @ExceptionHandler(InvalidActivityQueryException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleInvalidActivityQuery(InvalidActivityQueryException ex) {
+        return new ApiError("INVALID_ACTIVITY_QUERY", ex.getMessage());
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleInvalidParameter(MethodArgumentTypeMismatchException ex) {
+        return new ApiError("INVALID_REQUEST", "Request parameter is invalid");
     }
 
     @ExceptionHandler(IllegalStateException.class)

@@ -30,6 +30,13 @@ public class RepositoryPersistenceAdapter implements RepositoryRepository {
     }
 
     @Override
+    public List<Repository> findByOwnerAndNameIgnoreCase(String owner, String name) {
+        return entityRepository.findAllByOwnerIgnoreCaseAndNameIgnoreCase(owner, name).stream()
+                .map(RepositoryEntity::toDomain)
+                .toList();
+    }
+
+    @Override
     public boolean existsByOwnerAndName(String owner, String name) {
         return entityRepository.existsByOwnerAndName(owner, name);
     }
