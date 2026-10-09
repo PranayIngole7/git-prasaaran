@@ -16,11 +16,12 @@ public interface WebhookEventRepository extends JpaRepository<WebhookEventEntity
     @Query("""
             SELECT event
             FROM WebhookEventEntity event
-            WHERE (:repositoryId IS NULL OR event.repositoryId = :repositoryId)
-              AND (:status IS NULL OR event.status = :status)
-              AND (:eventType IS NULL OR LOWER(event.eventType) = LOWER(:eventType))
-              AND (:startAt IS NULL OR event.createdAt >= :startAt)
-              AND (:endAt IS NULL OR event.createdAt <= :endAt)
+            WHERE (event.repositoryId = COALESCE(:repositoryId, event.repositoryId)
+                   OR COALESCE(:repositoryId, -1) = -1)
+              AND event.status = COALESCE(:status, event.status)
+              AND LOWER(event.eventType) = COALESCE(:eventType, LOWER(event.eventType))
+              AND event.createdAt >= COALESCE(:startAt, event.createdAt)
+              AND event.createdAt <= COALESCE(:endAt, event.createdAt)
             """)
     Page<WebhookEventEntity> findActivity(
             @Param("repositoryId") Long repositoryId,

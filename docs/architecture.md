@@ -114,9 +114,22 @@ Webhook event recording
 Redis cache invalidation
 ```
 
-Webhook processing is not yet associated with an application Repository
-context. Repository-aware webhook association and scoped cache invalidation
-are intentionally deferred.
+Webhook cache invalidation is not repository-scoped. For a signature-verified
+push delivery, the backend resolves the payload's owner and repository name
+against configured application Repositories. An event is associated only when
+exactly one repository matches; unmatched or ambiguous events remain
+unassociated. Historical events are not backfilled and retain a null
+repository association. Delivery-ID deduplication and the existing received,
+processed, and failed statuses are preserved.
+
+Authenticated activity feeds expose persisted webhook event metadata through
+`GET /api/v1/activity` and
+`GET /api/v1/repositories/{repositoryId}/activity`. The global feed can include
+historical or unmatched events with no repository association; the
+repository-scoped feed includes only events associated with that internal
+repository ID. Activity records do not include commit messages, actors,
+changed files, branch names, or cache invalidation counts because those
+details are not persisted.
 
 ## Future Agent Context
 

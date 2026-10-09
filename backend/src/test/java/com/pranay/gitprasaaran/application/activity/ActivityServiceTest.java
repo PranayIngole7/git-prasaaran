@@ -54,7 +54,7 @@ class ActivityServiceTest {
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))
         ), 0));
 
-        var response = activityService.findActivity(null, 2, 5, "failed", " push ", from, to);
+        var response = activityService.findActivity(null, 2, 5, "failed", " PuSh ", from, to);
 
         assertEquals(2, response.page());
         assertEquals(5, response.size());

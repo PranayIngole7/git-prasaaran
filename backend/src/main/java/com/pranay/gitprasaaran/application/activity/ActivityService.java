@@ -98,6 +98,6 @@ public class ActivityService {
         if (normalized.isEmpty() || normalized.length() > MAX_EVENT_TYPE_LENGTH) {
             throw new InvalidActivityQueryException("eventType must contain between 1 and 100 characters");
         }
-        return normalized;
+        return normalized.toLowerCase(Locale.ROOT);
     }
 }
