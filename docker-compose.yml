@@ -1,14 +1,12 @@
 services:
-
   postgres:
     image: postgres:16-alpine
-    container_name: git-prasaaran-postgres
     environment:
       POSTGRES_DB: gitprasaaran
       POSTGRES_USER: gitprasaaran
-      POSTGRES_PASSWORD: gitprasaaran
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gitprasaaran}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -16,17 +14,73 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    container_name: git-prasaaran-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: "8080"
+      DB_URL: jdbc:postgresql://postgres:5432/gitprasaaran
+      DB_USERNAME: gitprasaaran
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-gitprasaaran}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env file}
+      CORS_ALLOWED_ORIGINS: http://localhost
+      GITHUB_OWNER: ${GITHUB_OWNER:-}
+      GITHUB_REPOSITORY: ${GITHUB_REPOSITORY:-}
+      GITHUB_BRANCH: ${GITHUB_BRANCH:-main}
+      GITHUB_CONTENT_PATH: ${GITHUB_CONTENT_PATH:-docs}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+    ports:
+      - "127.0.0.1:8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8081}
+    ports:
+      - "127.0.0.1:8082:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
 
 volumes:
   postgres_data:

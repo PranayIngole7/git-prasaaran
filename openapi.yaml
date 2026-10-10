@@ -7,6 +7,7 @@ info:
 
 servers:
   - url: http://localhost:8080
+    description: Local development server
 
 tags:
   - name: Authentication
@@ -27,12 +28,35 @@ tags:
     description: Application health
 
 paths:
+  /api/v1/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get the authenticated user's profile
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current user's email and assigned roles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResponse"
+        "401":
+          description: Authentication is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /api/v1/auth/register:
     post:
       tags:
         - Authentication
       summary: Register a customer account
       operationId: registerAccount
+      security: []
       requestBody:
         required: true
         content:
@@ -65,6 +89,7 @@ paths:
         - Authentication
       summary: Sign in and obtain a JWT
       operationId: login
+      security: []
       requestBody:
         required: true
         content:
@@ -93,6 +118,7 @@ paths:
         - Documents
       summary: List published documents
       operationId: getDocuments
+      security: []
       responses:
         "200":
           description: All available documents
@@ -109,6 +135,7 @@ paths:
         - Documents
       summary: Get a published document
       operationId: getDocument
+      security: []
       parameters:
         - name: slug
           in: path
@@ -595,6 +622,7 @@ paths:
         - Webhooks
       summary: Process a GitHub webhook
       operationId: processGithubWebhook
+      security: []
       parameters:
         - name: X-Hub-Signature-256
           in: header
@@ -681,6 +709,7 @@ paths:
         - Health
       summary: Check application health
       operationId: health
+      security: []
       responses:
         "200":
           description: Application is healthy
@@ -688,7 +717,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
-
+        "503":
+          description: Health check unavailable
 
   /api/v1/assistant/ask:
     post:
@@ -798,6 +828,25 @@ components:
           minLength: 8
           maxLength: 72
           description: Account password; stored as a password hash by the server
+
+    CurrentUserResponse:
+      type: object
+      required:
+        - email
+        - roles
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address of the authenticated account
+          example: customer@example.com
+        roles:
+          type: array
+          description: Sorted authorities assigned to the authenticated account
+          items:
+            type: string
+          example:
+            - ROLE_CUSTOMER
 
     RegistrationResponse:
       type: object

@@ -53,6 +53,19 @@ jobs:
                   java-version: "21"
                   cache: maven
 
+            - name: Create PostgreSQL integration test database
+              env:
+                  PGPASSWORD: gitprasaaran
+              run: createdb --host localhost --username gitprasaaran gitprasaaran_integration_test
+
+            - name: Validate OpenAPI contract
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "22"
+
+            - name: Check OpenAPI contract
+              run: npx --yes @redocly/cli@latest lint openapi.yaml
+
             - name: Run backend tests
               working-directory: backend
               env:
@@ -141,3 +154,35 @@ jobs:
 
             - name: Test Markdown validation hook
               run: node --test agent-hooks/tests/validate-markdown.test.mjs
+
+    secret-scan:
+        name: Secret Scanning
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository history
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Scan repository for secrets
+              uses: gitleaks/gitleaks-action@v2
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    dependency-review:
+        name: Dependency Review
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: read
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Review dependency changes
+              uses: actions/dependency-review-action@v4
+              with:
+                  fail-on-severity: high
