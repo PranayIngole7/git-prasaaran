@@ -24,14 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null)
     setApiAccessToken(null)
     setCurrentUser(null)
-    queryClient.removeQueries({ queryKey: ['private-documents'] })
+    queryClient.clear()
   }, [queryClient])
 
   const handleUnauthorized = useCallback(() => {
     setAccessToken(null)
     setApiAccessToken(null)
     setCurrentUser(null)
-    queryClient.removeQueries({ queryKey: ['private-documents'] })
+    queryClient.clear()
   }, [queryClient])
 
   useEffect(() => {

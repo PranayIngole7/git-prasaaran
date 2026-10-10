@@ -1,8 +1,17 @@
-import { GitBranch, Menu } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { GitBranch, LogOut, Menu } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../ui/Button'
+import { useAuth } from '../../features/auth/hooks/useAuth'
 
 export function Header({ onMenuClick }: { onMenuClick: () => void }) {
+  const { currentUser, logout } = useAuth()
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    logout()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-slate-200 bg-white px-4">
       <Button
@@ -21,6 +30,24 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
         <GitBranch className="size-5 text-indigo-600" />
         Git-Prasaaran
       </Link>
+
+      <div className="ml-auto flex items-center gap-3">
+        {currentUser?.email && (
+          <span className="hidden text-sm text-slate-600 sm:inline">
+            {currentUser.email}
+          </span>
+        )}
+
+        <Button
+          variant="ghost"
+          onClick={handleLogout}
+          aria-label="Log out"
+          title="Log out"
+        >
+          <LogOut className="mr-2 size-4" />
+          Log out
+        </Button>
+      </div>
     </header>
   )
 }
