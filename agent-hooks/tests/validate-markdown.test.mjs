@@ -48,6 +48,22 @@ test("rejects trailing whitespace and unclosed code fences", () => withTempDir((
   assert.match(result.stderr, /not closed/);
 }));
 
+test("does not allow a mismatched fence marker to close a code fence", () => withTempDir((dir) => {
+  const file = path.join(dir, "mismatched-fence.md");
+  writeFileSync(file, "````text\ncontent\n~~~\n");
+  const result = runHook([file]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /not closed/);
+}));
+
+test("does not allow a shorter fence to close a longer code fence", () => withTempDir((dir) => {
+  const file = path.join(dir, "short-fence.md");
+  writeFileSync(file, "````text\ncontent\n```\n");
+  const result = runHook([file]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /not closed/);
+}));
+
 test("rejects missing files", () => withTempDir((dir) => {
   const result = runHook([path.join(dir, "missing.md")]);
   assert.equal(result.status, 1);

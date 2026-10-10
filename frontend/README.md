@@ -1,32 +1,89 @@
-# React + TypeScript + Vite
+# Git-Prasaaran Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The Git-Prasaaran frontend is a React and TypeScript application for browsing GitHub-backed Markdown documentation and accessing the platform's documentation features.
 
-Currently, two official plugins are available:
+## Technology Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Router
+- TanStack Query
+- Axios
+- Vitest
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 22 or compatible
+- npm
+- Git-Prasaaran backend running locally
 
-## Expanding the Oxlint configuration
+## Setup
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+From the project root, navigate to the frontend directory:
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+cd frontend
+npm ci
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Create a local environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+Configure the backend API URL in `.env.local`:
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+Ensure the backend is running and accessible at the configured URL.
+
+## Development
+
+Start the Vite development server:
+
+```bash
+npm run dev
+```
+
+Open the local URL printed in the terminal, normally `http://localhost:5173`.
+
+## Testing and Validation
+
+Run the frontend tests:
+
+```bash
+npm test
+```
+
+Run the linter:
+
+```bash
+npm run lint
+```
+
+Create a production build:
+
+```bash
+npm run build
+```
+
+Preview the production build locally:
+
+```bash
+npm run preview
+```
+
+## Configuration
+
+The frontend uses `VITE_API_BASE_URL` to identify the backend API.
+
+Variables prefixed with `VITE_` may be included in the client-side bundle. Never put API secrets, JWT signing secrets, database credentials, or other private credentials in frontend environment variables.
+
+## Current Scope
+
+The frontend integrates with the backend APIs implemented by Git-Prasaaran. Features not supported by the backend should not be represented as functional merely for demonstration purposes.
