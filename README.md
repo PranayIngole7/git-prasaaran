@@ -4,12 +4,13 @@
 
 Git-Prasaaran transforms Markdown documents stored in Git repositories into secure, cached, and web-accessible documentation.
 
-Git is the source of truth for documentation content. PostgreSQL stores application metadata, and Redis caches rendered documentation.
+Git is the source of truth for published documentation. PostgreSQL stores application metadata and private user-owned Markdown; Redis caches rendered published documents.
 ---
 
 ## Features
 
 - GitHub-backed Markdown documentation.
+- Private Markdown documents owned by authenticated users.
 - YAML front matter parsing and HTML sanitization.
 - REST API and React documentation interface.
 - Redis caching and GitHub webhook cache invalidation.
@@ -22,7 +23,9 @@ Git is the source of truth for documentation content. PostgreSQL stores applicat
 
 ## Architecture
 
-GitHub Repository → Spring Boot Backend → PostgreSQL, Redis, and GitHub API
+GitHub Repository → Spring Boot Backend → Redis and GitHub API
+
+Private user documents → Spring Boot Backend → PostgreSQL
 
 React Frontend → Spring Boot Backend
 
@@ -204,10 +207,10 @@ node --test agent-hooks/tests/validate-markdown.test.mjs
 ## Security and Limitations
 - Never commit credentials, signing secrets, or production environment files.
 - Local Docker Compose credentials are for development only.
-- Public document endpoints are unauthenticated in the current implementation.
+- Published GitHub document endpoints are public; private-document endpoints require JWT authentication and enforce per-user ownership.
 - Protected endpoints use JWT authentication and configured authorization rules.
 - GitHub webhooks use HMAC-SHA256 signature verification.
-- Repository access is not scoped by user ownership.
+- Configured GitHub repository access is not scoped by user ownership. Private-document ownership is enforced separately.
 - MCP exposes read-only documentation tools but inherits the backend document API's access model.
 - The capability manifest and agent instructions describe intended permissions; they are not a security sandbox.
 - Production deployment, secret management, and independent security auditing require additional work.

@@ -18,7 +18,8 @@ GitHub Repository
 Spring Boot Backend
       │
       ├── PostgreSQL
-      │     └── Application metadata
+      │     ├── Application metadata
+      │     └── Private user documents
       │
       ├── Redis
       │     └── Rendered document cache
@@ -37,13 +38,16 @@ MCP Server
 Controlled Git-Prasaaran capabilities
 ```
 
-## Source of Truth
+## Content Sources and Storage
 
-Git/GitHub is the source of truth for Markdown documentation.
+Git/GitHub is the source of truth for published Markdown documentation.
 
-PostgreSQL stores application metadata only.
+PostgreSQL stores application metadata and the source Markdown for private
+user-owned documents. Private documents are separate from the GitHub-backed
+published-document model.
 
-Redis stores cached processed documents.
+Redis caches processed GitHub-published documents only. Private documents
+are never cached in Redis.
 
 ## Application Repository Context
 
@@ -98,6 +102,27 @@ Redis is only a cache. A repository-specific key includes the stable internal
 repository ID, so documents with the same slug from different application
 repositories do not share cache entries. The existing global document
 retrieval path remains available for the legacy `/api/v1/documents` routes.
+
+## Private User Documents
+
+Private documents use a separate PostgreSQL entity and API:
+
+```text
+GET/POST /api/v1/private-documents
+GET/PUT/DELETE /api/v1/private-documents/{id}
+```
+
+The `private_documents.owner_id` foreign key references `users.id`, and
+`(owner_id, slug)` is unique. Requests do not set an owner. The application
+resolves the authenticated principal's email to a database user ID, then
+uses owner-scoped database queries for list, read, update, and delete.
+Records outside that scope return 404, including for SUPPORT and ADMIN users.
+
+Private Markdown stays in PostgreSQL as the private content source of truth.
+The existing Markdown renderer sanitizes the HTML returned by the private
+API. This path does not use the public GitHub document cache, public document
+routes, assistant retrieval, or MCP tools. The frontend keys private queries
+by authenticated email and removes them on logout.
 
 ## Webhook Processing
 ```text

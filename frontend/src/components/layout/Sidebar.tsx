@@ -1,4 +1,4 @@
-import { Activity, Bot, FolderGit2, LayoutDashboard } from 'lucide-react'
+import { Activity, Bot, FileLock2, FolderGit2, LayoutDashboard } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '../../lib/utils/cn'
 
@@ -7,6 +7,7 @@ const links = [
   { to: '/repositories', label: 'Repositories', icon: FolderGit2 },
   { to: '/activity', label: 'Activity', icon: Activity },
   { to: '/assistant', label: 'Assistant', icon: Bot },
+  { to: '/private-documents', label: 'My documents', icon: FileLock2 },
 ]
 
 interface SidebarProps {

@@ -34,7 +34,8 @@ public class SecurityConfig {
                 "/api/v1/auth/register",
                 "/api/v1/webhooks/**",
                 "/api/v1/repositories/**",
-                "/api/v1/assistant/**"))
+                "/api/v1/assistant/**",
+                "/api/v1/private-documents/**"))
             .exceptionHandling(exceptionHandling -> exceptionHandling
                 .authenticationEntryPoint(
                     new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
@@ -47,6 +48,10 @@ public class SecurityConfig {
                     "/api/v1/auth/login",
                     "/api/v1/auth/register")
                 .permitAll()
+                .requestMatchers(
+                    "/api/v1/private-documents",
+                    "/api/v1/private-documents/**")
+                .authenticated()
                 .requestMatchers("/api/v1/me").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/v1/repositories")
                 .hasRole("ADMIN")

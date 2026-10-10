@@ -2,6 +2,8 @@ package com.pranay.gitprasaaran.api.error;
 
 import com.pranay.gitprasaaran.application.activity.InvalidActivityQueryException;
 import com.pranay.gitprasaaran.application.auth.DuplicateEmailException;
+import com.pranay.gitprasaaran.application.document.DuplicatePrivateDocumentSlugException;
+import com.pranay.gitprasaaran.application.document.PrivateDocumentNotFoundException;
 import com.pranay.gitprasaaran.application.repository.DuplicateRepositoryException;
 import com.pranay.gitprasaaran.application.repository.RepositoryNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -37,6 +39,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleDuplicateRepository(DuplicateRepositoryException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ApiError("REPOSITORY_ALREADY_EXISTS", "Repository is already registered"));
+    }
+
+    @ExceptionHandler(DuplicatePrivateDocumentSlugException.class)
+    public ResponseEntity<ApiError> handleDuplicatePrivateDocumentSlug(
+            DuplicatePrivateDocumentSlugException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiError(
+                        "PRIVATE_DOCUMENT_SLUG_ALREADY_EXISTS",
+                        "A private document with this slug already exists"));
+    }
+
+    @ExceptionHandler(PrivateDocumentNotFoundException.class)
+    public ResponseEntity<ApiError> handlePrivateDocumentNotFound(
+            PrivateDocumentNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiError(
+                        "PRIVATE_DOCUMENT_NOT_FOUND",
+                        "Private document not found"));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

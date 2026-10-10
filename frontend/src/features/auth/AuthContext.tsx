@@ -11,8 +11,10 @@ import {
   setApiAccessToken,
   setUnauthorizedHandler,
 } from '../../lib/api'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [currentUser, setCurrentUser] =
     useState<AuthContextValue['currentUser']>(null)
@@ -22,13 +24,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null)
     setApiAccessToken(null)
     setCurrentUser(null)
-  }, [])
+    queryClient.removeQueries({ queryKey: ['private-documents'] })
+  }, [queryClient])
 
   const handleUnauthorized = useCallback(() => {
     setAccessToken(null)
     setApiAccessToken(null)
     setCurrentUser(null)
-  }, [])
+    queryClient.removeQueries({ queryKey: ['private-documents'] })
+  }, [queryClient])
 
   useEffect(() => {
     setUnauthorizedHandler(handleUnauthorized)

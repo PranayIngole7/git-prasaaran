@@ -123,6 +123,22 @@ GET /api/v1/me
 It requires a valid JWT and returns the authenticated user's email and
 assigned roles.
 
+Private documents require a valid JWT on every operation:
+
+```text
+GET    /api/v1/private-documents
+POST   /api/v1/private-documents
+GET    /api/v1/private-documents/{id}
+PUT    /api/v1/private-documents/{id}
+DELETE /api/v1/private-documents/{id}
+```
+
+The backend resolves the owner's database ID from the authenticated
+principal's email. Client-supplied owner IDs are not used, and every
+private-document query is scoped to that owner. A document outside the
+principal's ownership scope returns 404, including for SUPPORT and ADMIN
+users.
+
 Repository endpoints are protected by the same JWT filter and URL-based
 authorization rules:
 
@@ -214,6 +230,8 @@ the `X-GitHub-Delivery` identifier.
   ownership or user-to-repository relationships.
 * Repository configuration responses do not expose GitHub credentials or
   tokens.
+* Private documents are excluded from public GitHub document endpoints,
+  assistant retrieval, MCP tools, and Redis document caches.
 * Access tokens are kept in frontend memory rather than browser
   localStorage.
 

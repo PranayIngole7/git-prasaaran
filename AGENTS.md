@@ -11,7 +11,8 @@ Git is the source of truth for documentation content.
 1. Keep the MVP small and focused.
 2. Prefer simple, maintainable solutions over unnecessary infrastructure.
 3. Keep business logic out of controllers.
-4. Keep PostgreSQL for application metadata, not Markdown content.
+4. Keep PostgreSQL for application metadata and explicitly user-owned private
+   documents; Git remains the source of truth for published Markdown.
 5. Treat Redis as a cache, never as the source of truth.
 6. Validate all GitHub webhook signatures.
 7. Sanitize rendered HTML.
@@ -58,7 +59,8 @@ Never:
 - bypass webhook signature verification
 - introduce unrestricted shell execution
 - provide unrestricted repository access to an agent
-- store Markdown content in PostgreSQL merely because it is convenient
+- store published Markdown content in PostgreSQL; private user documents are
+  the explicit owner-scoped exception
 
 ## MCP / Agent Rules
 

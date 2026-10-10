@@ -12,6 +12,9 @@ import { DocumentViewerPage } from '../../features/documentation/pages/DocumentV
 import { ActivityPage } from '../../features/activity/pages/ActivityPage'
 import { RepositoryActivityPage } from '../../features/activity/pages/RepositoryActivityPage'
 import { AssistantPage } from '../../features/assistant/pages/AssistantPage'
+import { PrivateDocumentsPage } from '../../features/private-documents/pages/PrivateDocumentsPage'
+import { PrivateDocumentPage } from '../../features/private-documents/pages/PrivateDocumentPage'
+import { PrivateDocumentEditorPage } from '../../features/private-documents/pages/PrivateDocumentEditorPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -44,6 +47,10 @@ export const router = createBrowserRouter([
           },
           { path: '/activity', element: <ActivityPage /> },
           { path: '/assistant', element: <AssistantPage /> },
+          { path: '/private-documents', element: <PrivateDocumentsPage /> },
+          { path: '/private-documents/new', element: <PrivateDocumentEditorPage /> },
+          { path: '/private-documents/:id', element: <PrivateDocumentPage /> },
+          { path: '/private-documents/:id/edit', element: <PrivateDocumentEditorPage /> },
           { path: '*', element: <Navigate to="/dashboard" replace /> },
         ],
       },

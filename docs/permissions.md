@@ -39,6 +39,11 @@ The backend currently permits unauthenticated access to:
 - `GET /api/v1/documents`
 - `GET /api/v1/documents/{slug}`
 
+Private user documents are not available through the MCP server. The MCP
+client continues to use only the public GitHub-published document endpoints;
+the authenticated `/api/v1/private-documents` API is a separate frontend
+capability and is not registered as an MCP tool.
+
 The MCP server does not add authentication to these public document
 endpoints. Anyone able to connect to the MCP process can request the
 documentation exposed by those endpoints.

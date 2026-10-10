@@ -30,13 +30,16 @@ Git-Prasaaran provides a small, focused publishing engine around these requireme
 
 ## 3. Core Product Principle
 
-**Git is the source of truth for documentation content.**
+**Git is the source of truth for published documentation content.**
 
-Git-Prasaaran does not store Markdown documents as the primary content database.
+Published documentation is retrieved from GitHub and processed on demand.
+Private user-authored documents are a separate feature whose Markdown source
+is stored in PostgreSQL and is accessible only to its owner.
 
-The system retrieves Markdown from GitHub when required, processes it, and caches the resulting representation for efficient access.
+The system retrieves published Markdown from GitHub when required, processes
+it, and caches the resulting representation for efficient access.
 
-PostgreSQL stores only application metadata.
+PostgreSQL stores application metadata and private-document content.
 
 Redis is used for caching and must never become the source of truth for documentation content.
 
@@ -50,8 +53,23 @@ GitHub repository remains the content source of truth; PostgreSQL stores
 only the application repository metadata.
 
 Repository ownership and multi-user repository authorization are not
-implemented yet. Repository deletion is not supported; an administrator
-deactivates a repository by setting `active=false`.
+implemented yet. Private-document ownership is separate and does not grant
+ownership of configured GitHub repositories. Repository deletion is not
+supported; an administrator deactivates a repository by setting
+`active=false`.
+
+### Private User Documents
+
+Private documents are separate from GitHub-published documents. PostgreSQL
+is the source of truth for private Markdown, with each record linked to its
+creating user. The backend derives the owner from the authenticated JWT
+principal and scopes every list, read, update, and delete query to that user.
+Client-supplied owner IDs are not used. Support and administrator roles do
+not grant cross-user access.
+
+Private documents are not included in public document APIs, the assistant's
+repository retrieval context, MCP tools, or Redis caches. Rendered HTML is
+sanitized on the backend before it is returned to the owner.
 
 ## 4. Target Users
 
@@ -117,6 +135,15 @@ The agent extension must not provide unrestricted shell execution or unrestricte
 
 Production publishing remains under explicit human-controlled Git workflows.
 
+### Journey 5 — Manage Private Documents
+
+1. An authenticated user opens **My documents**.
+2. The frontend calls the private-document API with the existing JWT.
+3. The backend resolves the owner from the authenticated principal.
+4. PostgreSQL lists only documents belonging to that owner.
+5. The owner can create, read, update, or delete their own Markdown documents.
+6. Other users receive the same not-found response as for a missing document.
+
 ## 6. Functional Requirements
 
 ### FR-01 — Document Listing
@@ -126,3 +153,20 @@ The backend shall provide:
 ```http
 GET /api/v1/documents
 ```
+
+### FR-02 — Private User Documents
+
+Authenticated users can create, list, read, update, and delete their own
+private Markdown documents through:
+
+```http
+GET    /api/v1/private-documents
+POST   /api/v1/private-documents
+GET    /api/v1/private-documents/{id}
+PUT    /api/v1/private-documents/{id}
+DELETE /api/v1/private-documents/{id}
+```
+
+The owner is always derived from the authenticated server-side principal.
+Private records are stored in PostgreSQL, use per-owner slug uniqueness,
+and are never returned by published-document, AI-assistant, or MCP routes.

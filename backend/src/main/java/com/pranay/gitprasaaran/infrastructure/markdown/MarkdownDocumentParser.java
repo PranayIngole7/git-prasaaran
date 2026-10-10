@@ -57,9 +57,7 @@ public class MarkdownDocumentParser {
             }
         }
 
-        Node document = parser.parse(markdown);
-        String renderedHtml = renderer.render(document);
-        String html = htmlPolicy.sanitize(renderedHtml);
+        String html = renderHtml(markdown);
 
         String title = frontMatter.getOrDefault("title", slug);
         String description = frontMatter.getOrDefault("description", "");
@@ -72,5 +70,11 @@ public class MarkdownDocumentParser {
                 html,
                 sourcePath
         );
+    }
+
+    public String renderHtml(String markdown) {
+        Node document = parser.parse(markdown);
+        String renderedHtml = renderer.render(document);
+        return htmlPolicy.sanitize(renderedHtml);
     }
 }
