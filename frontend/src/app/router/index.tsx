@@ -1,6 +1,7 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from '../../components/layout/AppLayout'
 import { LoginPage } from '../../features/auth/pages/LoginPage'
+import { SignUpPage } from '../../features/auth/pages/SignUpPage'
 import { ProtectedRoute } from '../../features/auth/components/ProtectedRoute'
 import { ForbiddenPage } from '../../features/auth/pages/ForbiddenPage'
 import { DashboardPage } from '../../features/dashboard/pages/DashboardPage'
@@ -14,6 +15,7 @@ import { AssistantPage } from '../../features/assistant/pages/AssistantPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  { path: '/signup', element: <SignUpPage /> },
   { path: '/forbidden', element: <ForbiddenPage /> },
   {
     element: <ProtectedRoute />,

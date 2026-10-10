@@ -1,6 +1,7 @@
 package com.pranay.gitprasaaran.api.error;
 
 import com.pranay.gitprasaaran.application.activity.InvalidActivityQueryException;
+import com.pranay.gitprasaaran.application.auth.DuplicateEmailException;
 import com.pranay.gitprasaaran.application.repository.DuplicateRepositoryException;
 import com.pranay.gitprasaaran.application.repository.RepositoryNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,13 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<ApiError> handleDuplicateEmail(DuplicateEmailException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiError("EMAIL_ALREADY_REGISTERED",
+                        "An account with this email already exists"));
+    }
 
     @ExceptionHandler(RepositoryNotFoundException.class)
     public ResponseEntity<ApiError> handleRepositoryNotFound(RepositoryNotFoundException ex) {
