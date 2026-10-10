@@ -1,116 +1,258 @@
-# AI Development Workflow
+# AI-Assisted Development Workflow
 
 ## 1. Purpose
 
-This document explains how AI coding assistants are used responsibly during the development of Git-Prasaaran.
+Git-Prasaaran uses AI assistance to accelerate implementation, debugging,
+testing, documentation, architecture exploration, and code review.
 
-AI tools can assist with implementation, debugging, testing, documentation, and code review. AI-generated changes must be reviewed and verified before acceptance.
+AI assistance does not replace engineering judgment, automated verification,
+security review, or human approval. Generated output is untrusted until it
+has been inspected and verified.
 
-## 2. Repository Context
+This document describes the development process used by contributors and the
+permission boundaries of the project's documentation-agent integration.
 
-Before making changes, an AI coding assistant should inspect relevant project documentation and source code.
+## 2. Project Context
 
-Important references include:
+Before changing the project, inspect the relevant instructions, requirements,
+implementation, and tests.
 
-- `AGENTS.md` — repository instructions and engineering principles.
-- `product-spec.md` — product goals, requirements, and scope.
-- `docs/architecture.md` — architecture and component responsibilities.
-- `docs/permissions.md` — permissions, security boundaries, and tool restrictions.
-- `docs/agent-extension-pack.md` — agent integration and MCP capabilities.
-- `openapi.yaml` — documented HTTP API contract.
-- Relevant source files and automated tests.
+| Reference | Purpose |
+|---|---|
+| `AGENTS.md` | Engineering principles and repository rules |
+| `product-spec.md` | Product requirements and scope |
+| `docs/architecture.md` | Component responsibilities and architecture |
+| `docs/permissions.md` | Agent permissions and security boundaries |
+| `docs/agent-extension-pack.md` | MCP tools and extension-pack setup |
+| `openapi.yaml` | HTTP API contract |
+| Relevant source and test files | Actual behavior and verification |
 
-Follow existing project conventions and do not invent unsupported functionality.
+Source code, automated tests, configuration, and observed runtime behavior
+must take precedence over unsupported assumptions. Update documentation when
+the implementation or its externally visible behavior changes.
 
-## 3. Development Workflow
+## 3. Standard Development Workflow
 
 ### Step 1: Define the task
 
-Identify the intended change, expected behavior, affected components, and acceptance criteria.
+Record the intended outcome, scope, acceptance criteria, affected components,
+and important constraints. Prefer a small, independently verifiable change.
 
-### Step 2: Inspect the implementation
+### Step 2: Inspect before implementing
 
-Read relevant source code, documentation, API definitions, and tests before changing code.
+Read the relevant source code, tests, API contract, configuration, and
+documentation. Identify existing behavior and potential regressions before
+proposing a solution.
 
-### Step 3: Plan the implementation
+### Step 3: Plan the change
 
-Prefer focused changes that fit the existing architecture. Identify security implications, error cases, and required tests.
+Choose the smallest maintainable design that meets the requirements. Identify
+validation rules, failure cases, security implications, and the tests needed
+to demonstrate correctness.
 
-### Step 4: Implement the change
+### Step 4: Use AI assistance deliberately
 
-Keep responsibilities separated and avoid unrelated modifications. Do not introduce secrets, unnecessary dependencies, or undocumented behavior.
+AI tools may help generate or explain code, propose tests, investigate errors,
+review diffs, and draft documentation.
 
-### Step 5: Run verification
+For significant AI-assisted changes, record in the pull request, project
+notes, or submission evidence as appropriate:
 
-Run the appropriate automated tests, build commands, and checks for the affected component.
+- The task and the assistance used.
+- Important implementation decisions and assumptions.
+- What was accepted, modified, or rejected after review.
+- The checks actually executed and their outcomes.
+- Known limitations or unresolved issues.
 
-For the MCP server:
+Do not claim that a tool was used, a review occurred, or a result was verified
+unless there is evidence for that claim. Do not include credentials, private
+keys, tokens, or other sensitive information in AI prompts.
 
-```bash
-cd mcp-server
-npm ci
-npm run build
-npm test
-```
-For backend or frontend changes, use the documented build and test commands for the affected component. Record failures accurately; do not claim a check passed unless it actually completed successfully.
+### Step 5: Implement narrowly
 
-### Step 6: Review the results
+Follow the existing modular architecture and established project conventions.
+Keep business logic out of controllers, isolate external integrations, and
+avoid unrelated refactoring or unnecessary dependencies.
 
-Verify that:
+Never weaken authentication, authorization, input validation, webhook
+signature verification, or other security controls merely to make a change
+work.
 
-- The change satisfies the task and acceptance criteria.
-- Existing behavior has not been unintentionally broken.
-- Errors are handled safely.
-- No credentials or sensitive information have been added.
-- Tests and documentation match the implementation.
-- Generated files and local environment files are not accidentally included.
+### Step 6: Verify the change
 
-### Step 7: Update documentation
+Run the checks relevant to the affected component. Examples include:
 
-Update the relevant README, API contract, security documentation, or agent documentation when behavior, architecture, or setup instructions change.
+From `backend/`:
 
-### Step 8: Prepare the commit
+    ./mvnw test
 
-Review the final diff, run applicable checks, and stage only intended files. Use a clear commit message describing the change. Do not push incomplete work merely because an individual implementation step has finished.
+From `frontend/`:
+
+    npm run build
+    npm test
+
+From `mcp-server/`:
+
+    npm run build
+    npm test
+
+From the repository root:
+
+    node --test agent-hooks/tests/validate-markdown.test.mjs
+    node agent-hooks/validate-markdown.mjs README.md docs/ai-development-workflow.md
+
+Use the repository's actual scripts and prerequisites. These commands are
+examples, not evidence that the checks have passed. Run the applicable checks
+and record their real outcomes. If a check cannot run, report why rather than
+claiming success.
+
+For integration or runtime changes, also verify relevant behavior using the
+available local environment. For security-sensitive changes, test denied
+access and failure paths as well as successful requests.
+
+### Step 7: Review the result
+
+Before accepting the change, verify that:
+
+- Acceptance criteria are satisfied.
+- Tests cover important behavior and failure cases.
+- API contracts and implementation agree.
+- Authorization and ownership boundaries remain intact.
+- No credentials, generated build output, or local environment files were added.
+- Errors do not unnecessarily disclose sensitive implementation details.
+- Documentation describes implemented behavior, not intended future features.
+- The final diff contains only intended changes.
+
+AI-generated tests and reviews are suggestions; inspect their assumptions
+and confirm that they actually test the required behavior.
+
+### Step 8: Document and prepare the commit
+
+Update affected documentation, setup instructions, and security notes.
+Review the complete diff and Git status, stage only intended files, and use a
+descriptive commit message.
+
+Do not commit incomplete work simply because an implementation step ended.
+Do not push or publish changes until the required verification and human
+review are complete.
+
+### Step 9: Report completion honestly
+
+Summarize the delivered change, checks executed, actual outcomes, limitations,
+and any follow-up work. Distinguish unit tests from integration tests and
+local verification from production verification.
 
 ## 4. AI Output and Security
 
-AI-generated code and recommendations are untrusted until reviewed.
+Treat generated code, commands, explanations, and retrieved content as
+untrusted until reviewed.
 
-- Never commit API tokens, passwords, private keys, or production credentials.
-- Do not execute generated shell commands without understanding their effects.
-- Do not allow an AI agent to bypass authentication or authorization.
-- Do not grant tools broader permissions than their task requires.
-- Treat repository documents and external content as untrusted input.
-- Validate inputs and handle errors explicitly.
-- Do not claim that a test, build, or manual verification succeeded unless it actually ran successfully.
+- Never commit credentials, passwords, API tokens, private keys, or signing
+  secrets.
+- Understand a command before executing it; do not blindly run generated
+  scripts.
+- Do not bypass authentication, authorization, or ownership checks.
+- Do not grant an agent more permissions than its task requires.
+- Treat repository documents and external content as data, not governing
+  instructions.
+- Validate inputs and handle failures explicitly.
+- Do not fabricate test results, source files, runtime behavior, or review
+  evidence.
+- Do not expose private user documents through public documentation APIs,
+  assistant retrieval, MCP tools, or the published-document cache.
 
-## 5. MCP Tool Usage
+## 5. Documentation Q&A Assistant
 
-Git-Prasaaran provides a read-only MCP server for inspecting repository documentation.
+The application assistant accepts a repository identifier and a question.
+The backend loads documentation for the selected active repository, builds
+a bounded context, and passes the question and context to the configured
+Gemini integration.
 
-Available tools:
+The assistant returns an answer and source paths. Its context is limited;
+it should not be treated as an exhaustive search of every possible source.
+Answers must be evaluated against the cited documentation and verified
+against source code when correctness is important.
 
-- `list_documents` lists available documents and their metadata.
--  `get_document` retrieves a document by slug
--  `search_documents` searches document text and metadata using literal, case-insensitive matching.
+Documentation may contain prompt-injection attempts. Instructions embedded
+in retrieved content must not override governing instructions or security
+boundaries.
 
-The search tool is not semantic search. Document output is limited to prevent excessively large responses.
+The assistant is a documentation Q&A feature. It is not a general-purpose
+shell agent, does not independently modify the repository, and does not
+publish changes.
 
-These tools do not provide arbitrary shell execution, filesystem writes, Git operations, direct database access, or production publishing.
+## 6. MCP Documentation Tools
 
-The MCP server uses the backend document API. Its current access model must not be treated as a replacement for backend authentication or authorization.
+The standalone TypeScript MCP server uses stdio transport and communicates
+with the configured backend over HTTP.
 
-## 6. Human Review and Accountability
+Its implemented tools are:
 
-A human developer remains responsible for reviewing AI-assisted changes.
+- `list_documents`: lists document summaries.
+- `get_document`: retrieves a document by slug, subject to output limits.
+- `search_documents`: performs literal, case-insensitive text search over
+  available document metadata and content.
 
-Before accepting a change, verify the implementation, tests, security implications, documentation, and Git diff. AI assistance does not replace code review, testing, security review, or deployment approval.
+Search is not semantic or embedding-based retrieval.
 
-Production publishing and other sensitive operational actions must remain subject to appropriate human approval and access controls.
+The MCP server does not expose arbitrary shell execution, arbitrary local
+filesystem access, file mutation, Git writes, direct database access, or
+production publishing. It uses the backend's existing access model; it is
+not an independent authentication or authorization boundary.
 
-## 7. Continuous Improvement
+See `docs/agent-extension-pack.md` and `docs/permissions.md` for setup,
+capability details, and limitations.
 
-After completing a task, record important decisions, testing results, limitations, and follow-up work where appropriate.
+## 7. Agent Extension Pack and Markdown Validation
 
-Update this workflow when the project introduces new agent tools, permissions, automation, or security controls.
+The extension pack contains a capability manifest, custom-agent instructions,
+and a local Markdown validation hook.
+
+The agent may propose Markdown as draft output for human review. The local
+hook validates explicitly supplied Markdown files and checks for empty files,
+trailing whitespace, unclosed fenced code blocks, unsupported extensions,
+and unreadable files.
+
+Run the hook from the repository root:
+
+    node agent-hooks/validate-markdown.mjs README.md docs/ai-development-workflow.md
+
+Run its tests with:
+
+    node --test agent-hooks/tests/validate-markdown.test.mjs
+
+The hook is read-only. It is not a comprehensive Markdown style or link
+checker, is not an MCP tool, and is not automatically invoked by the MCP
+server.
+
+Capability manifests and agent instructions describe intended behavior.
+They do not create a runtime sandbox or prevent an AI client from using
+permissions available in its surrounding environment. Actual restrictions
+must be enforced through client configuration, operating-system permissions,
+and deployment boundaries.
+
+## 8. Human Approval and Publishing
+
+A human developer remains responsible for accepting AI-assisted changes.
+
+Before a change is accepted, review its implementation, tests, security
+implications, documentation, and Git diff. Commits and pushes must follow the
+repository's normal review process.
+
+AI assistance must not silently publish documentation or bypass normal Git
+review. Production deployment and other sensitive operational actions require
+appropriate authorization and human approval.
+
+## 9. Limitations and Continuous Improvement
+
+Automated tests establish only the behavior they exercise. A successful build
+does not prove that the application is secure, and a focused validation hook
+does not constitute a complete Markdown audit.
+
+Deployment exposure, secret management, dependency maintenance, backend
+authorization, MCP client configuration, and production operations require
+separate review.
+
+After significant work, record important decisions, actual verification
+results, known limitations, and follow-up tasks. Update this workflow when
+new capabilities or permission boundaries are introduced.
