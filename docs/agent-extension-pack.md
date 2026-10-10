@@ -110,7 +110,61 @@ See [permissions.md](permissions.md).
 ## 5. Setup
 
 Requirements:
-
-- Node.js 22 or a compatible supported Node.js release
+- Node.js 22 or a compatible supported release
 - npm
 - A reachable Git-Prasaaran backend
+
+From the repository root, build and test the MCP server:
+
+    cd mcp-server
+    npm ci
+    npm run build
+    npm test
+
+Configure the backend URL if needed and start the server:
+
+    export BACKEND_BASE_URL=http://localhost:8080
+    npm start
+
+The MCP server uses stdio for communication with compatible MCP clients.
+Configure the client to launch the server using the project's Node.js
+entrypoint and working directory.
+
+## 6. Capability Manifest and Custom Agent
+
+The extension pack includes:
+
+- agent-capabilities/capabilities.json: declares intended capabilities and
+  prohibited operations.
+- plugins/custom-agent/AGENT.md: reusable instructions for a documentation
+  agent.
+- plugins/custom-agent/manifest.json: identifies the agent instructions,
+  capability manifest, MCP server, and intended permissions.
+
+The agent can discover, retrieve, and search published documentation through
+MCP. It can propose Markdown drafts and use the local validation hook on
+explicitly supplied Markdown files.
+
+These manifests and instructions describe intended behavior. They do not
+independently enforce runtime permissions or sandbox an AI client. Actual
+access depends on client configuration and its execution environment.
+Human review is required before accepting or publishing proposed changes.
+
+## 7. Markdown Validation Hook
+
+Run the validation hook against explicitly supplied Markdown files from the
+repository root:
+
+    node agent-hooks/validate-markdown.mjs path/to/document.md
+
+The hook checks for empty files, trailing whitespace, and unclosed fenced
+code blocks. It rejects unreadable files and unsupported extensions and does
+not modify input files.
+
+Run its automated tests from the repository root:
+
+    node --test agent-hooks/tests/validate-markdown.test.mjs
+
+This is a focused validation check, not a complete Markdown style, link, or
+rendering audit. The hook is a local command, not an MCP tool. The MCP server
+does not access local files or execute this hook.

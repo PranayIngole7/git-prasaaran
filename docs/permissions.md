@@ -111,3 +111,27 @@ Automated tests and protocol-level smoke tests verify selected behaviors;
 they do not constitute a complete security audit. Deployment access,
 backend exposure, secret handling, dependency updates, and client
 configuration still require appropriate review.
+
+## 9. Extension-Pack Assets and Enforcement Limits
+
+The repository includes a capability manifest, custom documentation-agent
+instructions, and a local Markdown validation hook.
+
+The manifest declares intended capabilities and prohibited operations. The
+agent instructions require human review and prohibit arbitrary shell
+execution, unrestricted filesystem access, Git writes, and production
+publishing.
+
+These files provide policy declarations and agent guidance, not a security
+sandbox. They do not technically prevent a separately configured AI client
+from using tools or permissions available in its surrounding environment.
+Enforce restrictions through actual client configuration, operating-system
+permissions, and deployment boundaries as appropriate.
+
+The Markdown hook reads explicitly supplied files and does not modify them.
+It checks empty content, trailing whitespace, and fenced-code-block closure.
+It is not a full Markdown linter and is not exposed as an MCP tool.
+
+Run its tests from the repository root:
+
+    node --test agent-hooks/tests/validate-markdown.test.mjs

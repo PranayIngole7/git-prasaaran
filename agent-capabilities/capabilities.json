@@ -1,0 +1,44 @@
+{
+  "name": "git-prasaaran-documentation-agent",
+  "version": "1.0.0",
+  "purpose": "Assist with inspecting, drafting, and validating Markdown documentation.",
+  "capabilities": {
+    "list_documents": {
+      "allowed": true,
+      "mode": "read-only",
+      "mcp_tool": "list_documents"
+    },
+    "retrieve_documents": {
+      "allowed": true,
+      "mode": "read-only",
+      "mcp_tool": "get_document"
+    },
+    "search_documents": {
+      "allowed": true,
+      "mode": "read-only",
+      "mcp_tool": "search_documents"
+    },
+    "draft_markdown": {
+      "allowed": true,
+      "mode": "proposed-output",
+      "requires_human_review": true
+    },
+    "validate_markdown": {
+      "allowed": true,
+      "mode": "read-only-local-validation",
+      "hook": "../agent-hooks/validate-markdown.mjs"
+    }
+  },
+  "prohibited": [
+    "arbitrary_shell_execution",
+    "arbitrary_program_execution",
+    "unrestricted_filesystem_access",
+    "unapproved_file_mutation",
+    "git_commit_creation",
+    "git_push",
+    "production_publishing",
+    "direct_database_access",
+    "credential_disclosure"
+  ],
+  "publishing_policy": "A human must review and publish accepted changes through the normal Git workflow."
+}
