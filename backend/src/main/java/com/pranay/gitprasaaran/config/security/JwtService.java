@@ -60,6 +60,7 @@ public class JwtService {
     private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(signingKey)
+                .requireIssuer(properties.issuer())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
