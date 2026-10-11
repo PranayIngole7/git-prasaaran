@@ -5,6 +5,15 @@
 Git-Prasaaran transforms Markdown documents stored in Git repositories into secure, cached, and web-accessible documentation.
 
 Git is the source of truth for published documentation. PostgreSQL stores application metadata and private user-owned Markdown; Redis caches rendered published documents.
+
+## Live Demo
+
+- **Frontend:** https://git-prasaaran.netlify.app/
+- **Backend API:** https://git-prasaaran-backend.onrender.com/
+- **Health Check:** https://git-prasaaran-backend.onrender.com/api/v1/health
+- **Source Code:** https://github.com/PranayIngole7/git-prasaaran
+
+> **Note:** The backend uses free-tier hosting. Initial requests may take longer after periods of inactivity.
 ---
 
 ## Features
@@ -213,7 +222,7 @@ node --test agent-hooks/tests/validate-markdown.test.mjs
 - Configured GitHub repository access is not scoped by user ownership. Private-document ownership is enforced separately.
 - MCP exposes read-only documentation tools but inherits the backend document API's access model.
 - The capability manifest and agent instructions describe intended permissions; they are not a security sandbox.
-- Production deployment, secret management, and independent security auditing require additional work.
+- Production uses free-tier hosting; production secret management and independent security auditing require additional work.
 ---
 
 ## License
