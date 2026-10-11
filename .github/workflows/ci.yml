@@ -139,6 +139,20 @@ jobs:
               working-directory: mcp-server
               run: npm run build
 
+    container-images:
+        name: Container Image Builds
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Build backend image
+              run: docker build --file backend/Dockerfile --tag git-prasaaran-backend:ci backend
+
+            - name: Build frontend image
+              run: docker build --file frontend/Dockerfile --tag git-prasaaran-frontend:ci frontend
+
     agent-hook:
         name: Agent Hook Tests
         runs-on: ubuntu-latest
