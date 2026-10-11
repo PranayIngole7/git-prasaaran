@@ -31,7 +31,7 @@ Git is the source of truth for published documentation. PostgreSQL stores applic
 ---
 
 ## Architecture
-
+```text
 GitHub Repository → Spring Boot Backend → Redis and GitHub API
 
 Private user documents → Spring Boot Backend → PostgreSQL
@@ -39,8 +39,8 @@ Private user documents → Spring Boot Backend → PostgreSQL
 React Frontend → Spring Boot Backend
 
 AI Client → Read-only MCP Server → Backend Document API
-
-GitHub webhooks notify the backend about documentation changes so relevant cache entries can be invalidated.
+```
+> GitHub webhooks notify the backend about documentation changes so relevant cache entries can be invalidated.
 ---
 
 ## Technology Stack
@@ -164,7 +164,7 @@ Check the documentation endpoint:
 curl -i http://localhost:8080/api/v1/documents
 ```
 
-The document endpoint requires valid GitHub configuration and access.
+> The document endpoint requires valid GitHub configuration and access.
 ---
 
 ## Testing
@@ -201,16 +201,16 @@ node --test agent-hooks/tests/validate-markdown.test.mjs
 ---
 
 ## Documentation
-**Product specification:** `product-spec.md`
-**Architecture:** `docs/architecture.md`
-**API contract:** `openapi.yaml`
-**AI development workflow:** `docs/ai-development-workflow.md`
-**Authentication model:** `docs/security-authentication-model.md`
-**JWT strategy:** `docs/security-jwt-strategy.md`
-**Security overview:** `security/README.md`
-**Operations guide:** `ops/README.md`
-**Agent permissions:** `docs/permissions.md`
-**Agent extension pack:** `docs/agent-extension-pack.md`
+- **Product specification:** `product-spec.md`
+- **Architecture:** `docs/architecture.md`
+- **API contract:** `openapi.yaml`
+- **AI development workflow:** `docs/ai-development-workflow.md`
+- **Authentication model:** `docs/security-authentication-model.md`
+- **JWT strategy:** `docs/security-jwt-strategy.md`
+- **Security overview:** `security/README.md`
+- **Operations guide:** `ops/README.md`
+- **Agent permissions:** `docs/permissions.md`
+- **Agent extension pack:** `docs/agent-extension-pack.md`
 ---
 
 ## Security and Limitations
@@ -225,7 +225,13 @@ node --test agent-hooks/tests/validate-markdown.test.mjs
 - Production uses free-tier hosting; production secret management and independent security auditing require additional work.
 ---
 
-## License
+## License and Copyright
 
-No license has been declared. Contact the repository owner before redistributing this project.
----
+Copyright (c) 2026 Pranay Ingole. All rights reserved.
+
+No open-source license has been granted for this project. You may view
+the source code on GitHub, but permission to reuse, redistribute, or
+create derivative works is not granted by this notice.
+
+Third-party dependencies and components remain subject to their
+respective licenses.
