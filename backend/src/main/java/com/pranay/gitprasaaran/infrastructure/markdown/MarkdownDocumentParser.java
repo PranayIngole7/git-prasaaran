@@ -1,6 +1,8 @@
 package com.pranay.gitprasaaran.infrastructure.markdown;
 
 import com.pranay.gitprasaaran.domain.document.Document;
+import org.commonmark.Extension;
+import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
@@ -9,13 +11,22 @@ import org.owasp.html.PolicyFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
 public class MarkdownDocumentParser {
 
-    private final Parser parser = Parser.builder().build();
-    private final HtmlRenderer renderer = HtmlRenderer.builder().build();
+    private final List<Extension> extensions =
+            List.of(TablesExtension.create());
+
+    private final Parser parser = Parser.builder()
+            .extensions(extensions)
+            .build();
+
+    private final HtmlRenderer renderer = HtmlRenderer.builder()
+            .extensions(extensions)
+            .build();
 
     private final PolicyFactory htmlPolicy = new HtmlPolicyBuilder()
             .allowElements(
@@ -24,6 +35,7 @@ public class MarkdownDocumentParser {
                     "strong", "em", "del",
                     "ul", "ol", "li",
                     "blockquote",
+                    "table", "thead", "tbody", "tr", "th", "td",
                     "pre", "code",
                     "a"
             )

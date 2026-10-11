@@ -61,4 +61,23 @@ class MarkdownDocumentParserTest {
         assertFalse(document.html().contains("javascript:"));
         assertFalse(document.html().contains("alert"));
     }
+
+    @Test
+    void shouldRenderAndPreserveMarkdownTables() {
+        Document document = parser.parse(
+                "table-test",
+                "| Name | Age |\n" +
+                        "| --- | ---: |\n" +
+                        "| Alice | 25 |\n" +
+                        "| Bob | 30 |",
+                "docs/table-test.md"
+        );
+
+        assertTrue(document.html().contains("<table>"));
+        assertTrue(document.html().contains("<th"));
+        assertTrue(document.html().contains("<td"));
+        assertTrue(document.html().contains("Alice"));
+        assertTrue(document.html().contains("Bob"));
+    }
+
 }
