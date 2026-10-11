@@ -201,16 +201,17 @@ node --test agent-hooks/tests/validate-markdown.test.mjs
 ---
 
 ## Documentation
-- **Product specification:** `product-spec.md`
-- **Architecture:** `docs/architecture.md`
-- **API contract:** `openapi.yaml`
-- **AI development workflow:** `docs/ai-development-workflow.md`
-- **Authentication model:** `docs/security-authentication-model.md`
-- **JWT strategy:** `docs/security-jwt-strategy.md`
-- **Security overview:** `security/README.md`
-- **Operations guide:** `ops/README.md`
-- **Agent permissions:** `docs/permissions.md`
-- **Agent extension pack:** `docs/agent-extension-pack.md`
+
+- **[Product specification](product-spec.md)**
+- **[Architecture](docs/architecture.md)**
+- **[API contract](openapi.yaml)**
+- **[AI development workflow](docs/ai-development-workflow.md)**
+- **[Authentication model](docs/security-authentication-model.md)**
+- **[JWT strategy](docs/security-jwt-strategy.md)**
+- **[Security overview](security/README.md)**
+- **[Operations guide](ops/README.md)**
+- **[Agent permissions](docs/permissions.md)**
+- **[Agent extension pack](docs/agent-extension-pack.md)**
 ---
 
 ## Security and Limitations
