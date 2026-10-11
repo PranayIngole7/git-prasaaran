@@ -58,7 +58,6 @@ public class GeminiAssistantAnswerGenerator implements AssistantAnswerGenerator 
                         Map.of("parts", List.of(Map.of("text", prompt)))
                 ),
                 "generationConfig", Map.of(
-                        "temperature", 0.2,
                         "maxOutputTokens", 700
                 )
         );
