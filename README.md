@@ -28,6 +28,8 @@ Git is the source of truth for published documentation. PostgreSQL stores applic
 - AI-assisted documentation Q&A through the configured Gemini integration.
 - Read-only MCP tools for listing, retrieving, and searching documents.
 - Agent extension pack with capability manifests, custom agent instructions, and a Markdown validation hook.
+- Local observability with Prometheus metrics, Grafana dashboards, and Alertmanager alert routing.
+- A bounded, read-only incident responder with allowlisted alerts, diagnostic collection, and JSONL audit logging.
 ---
 
 ## Architecture
@@ -39,8 +41,14 @@ Private user documents → Spring Boot Backend → PostgreSQL
 React Frontend → Spring Boot Backend
 
 AI Client → Read-only MCP Server → Backend Document API
+
+Prometheus → Backend Actuator Metrics → Alert Rules → Alertmanager
+Alertmanager → Bounded Incident Responder → Read-only Diagnostics → JSONL Audit Log
+Grafana → Prometheus Metrics and Service Dashboard
 ```
 > GitHub webhooks notify the backend about documentation changes so relevant cache entries can be invalidated.
+
+The local observability stack monitors backend scrape health and elevated HTTP 5xx rates. The incident responder accepts only configured alert names and performs bounded, read-only diagnostics; it does not execute remediation.
 ---
 
 ## Technology Stack
@@ -54,7 +62,9 @@ AI Client → Read-only MCP Server → Backend Document API
 - **Agent integration:** TypeScript and Model Context Protocol SDK
 - **Testing:** JUnit, Spring testing, Vitest, Node.js test runner
 - **Local infrastructure:** Docker Compose
-- **CI:** GitHub Actions
+- **Observability:** Prometheus, Grafana, Alertmanager
+- **Incident response:** Python standard-library HTTP responder with JSONL audit logging
+- **CI:** GitHub Actions, including the incident-responder test suite
 ---
 
 ## Prerequisites
@@ -198,6 +208,52 @@ Run from the project root:
 ```bash
 node --test agent-hooks/tests/validate-markdown.test.mjs
 ```
+
+### Incident Responder Tests
+
+The responder uses Python's standard library and does not require third-party Python packages:
+
+```bash
+PYTHONPATH=incident-responder python3 -m unittest discover \
+  -s incident-responder/tests -p 'test_*.py' -v
+```
+
+### Run All Test Suites
+
+From the project root, use the Makefile to run the backend, frontend, MCP, agent-hook, and incident-responder test suites:
+
+```bash
+make test-all
+```
+
+---
+
+## Local Observability and Incident Response
+
+The optional Docker Compose observability stack includes Prometheus, Grafana, and Alertmanager, alongside the application services and incident responder.
+
+Set `GRAFANA_ADMIN_PASSWORD` in the root `.env` file before starting the full stack. Never commit or share that file.
+
+```bash
+docker compose config -q
+docker compose up -d --build
+docker compose ps
+```
+
+Local interfaces are bound to loopback:
+
+- Frontend: `http://localhost:8082`
+- Backend API: `http://localhost:8081`
+- Prometheus: `http://localhost:9090`
+- Grafana: `http://localhost:3000`
+- Alertmanager: `http://localhost:9093`
+
+The provisioned Grafana dashboard shows backend scrape status, request rate, HTTP 5xx rate, and JVM heap usage. Prometheus evaluates `BackendTargetDown` and `BackendHighServerErrorRate` rules and routes alerts to Alertmanager. Alertmanager sends webhook events to the bounded incident responder, which records sanitized audit events and whether human review is required.
+
+**Limitations:** local Alertmanager-to-responder webhook delivery and audit logging have been tested. A real Prometheus rule-generated alert has not been verified end-to-end. The responder webhook has no application-level authentication and is intended only for a trusted local Compose environment. External email, Slack, and paging integrations are not configured. The responder does not perform automatic remediation or page a human operator.
+
+For health checks, alert triage, troubleshooting, and responder safety boundaries, see the [Operations Guide](ops/README.md).
+
 ---
 
 ## Documentation
@@ -212,6 +268,7 @@ node --test agent-hooks/tests/validate-markdown.test.mjs
 - **[Operations guide](ops/README.md)**
 - **[Agent permissions](docs/permissions.md)**
 - **[Agent extension pack](docs/agent-extension-pack.md)**
+- **[Agent team and runtime safety boundaries](docs/agent-team.md)**
 ---
 
 ## Security and Limitations
@@ -223,6 +280,9 @@ node --test agent-hooks/tests/validate-markdown.test.mjs
 - Configured GitHub repository access is not scoped by user ownership. Private-document ownership is enforced separately.
 - MCP exposes read-only documentation tools but inherits the backend document API's access model.
 - The capability manifest and agent instructions describe intended permissions; they are not a security sandbox.
+- The local incident responder performs bounded, read-only diagnostics and writes sanitized audit records; it does not execute automatic remediation.
+- The responder webhook has no application-level authentication and must remain within a trusted local Compose environment.
+- Local webhook delivery is tested, but external email/Slack/paging and end-to-end delivery of a real rule-generated Prometheus alert are not verified.
 - Production uses free-tier hosting; production secret management and independent security auditing require additional work.
 ---
 

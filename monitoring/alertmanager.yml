@@ -1,0 +1,18 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: incident-responder
+  group_by:
+    - alertname
+    - service
+  group_wait: 5s
+  group_interval: 30s
+  repeat_interval: 4h
+
+receivers:
+  - name: incident-responder
+    webhook_configs:
+      - url: http://incident-responder:8080/api/v1/alerts
+        send_resolved: true
+        max_alerts: 100

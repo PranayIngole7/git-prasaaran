@@ -31,6 +31,15 @@ The backend should maintain clear separation between:
 
 External integrations should be isolated behind appropriate interfaces where useful.
 
+## Agent Team and Modular Documentation
+
+See [docs/agent-team.md](docs/agent-team.md) for agent roles, collaboration,
+handoffs, verification responsibilities, and operational responder boundaries.
+
+Before changing a component, consult the relevant product, architecture,
+security, operations, and agent documentation. Link significant changes to
+their public task-tracker issues and record actual verification evidence.
+
 ## AI-Assisted Development
 
 AI tools may assist with:

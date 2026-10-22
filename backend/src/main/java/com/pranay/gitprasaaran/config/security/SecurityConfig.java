@@ -1,6 +1,8 @@
 package com.pranay.gitprasaaran.config.security;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
+import org.springframework.core.annotation.Order;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -24,6 +26,18 @@ public class SecurityConfig {
     }
 
     @Bean
+    @Order(1)
+    SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher(EndpointRequest.toAnyEndpoint())
+            .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers(EndpointRequest.to("health", "prometheus")).permitAll()
+                .anyRequest().denyAll());
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> {})

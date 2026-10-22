@@ -1,0 +1,27 @@
+groups:
+- name: git-prasaaran-backend
+  rules:
+  - alert: BackendTargetDown
+    expr: up{job="git-prasaaran-backend"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: git-prasaaran
+    annotations:
+      summary: Git-Prasaaran backend scrape is failing
+      description: Prometheus has been unable to scrape the backend for at least one
+        minute.
+  - alert: BackendHighServerErrorRate
+    expr: "(\n  sum(rate(http_server_requests_seconds_count{\n    job=\"git-prasaaran-backend\"\
+      ,\n    status=~\"5..\"\n  }[5m]))\n  /\n  clamp_min(\n    sum(rate(http_server_requests_seconds_count{\n\
+      \      job=\"git-prasaaran-backend\"\n    }[5m])),\n    0.000001\n  )\n) > 0.05\n\
+      and\nsum(rate(http_server_requests_seconds_count{\n  job=\"git-prasaaran-backend\"\
+      \n}[5m])) > 0.1\n"
+    for: 5m
+    labels:
+      severity: warning
+      service: git-prasaaran
+    annotations:
+      summary: Git-Prasaaran backend 5xx rate is elevated
+      description: More than 5% of backend requests are returning HTTP 5xx responses
+        for five minutes, with sufficient request volume.

@@ -32,6 +32,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
+      # Management endpoints are reachable through the internal Compose network.
+      MANAGEMENT_SERVER_PORT: "8081"
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
       SERVER_PORT: "8080"
       DB_URL: jdbc:postgresql://postgres:5432/gitprasaaran
       DB_USERNAME: gitprasaaran
@@ -56,7 +59,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8081/actuator/health || exit 1"]
       interval: 15s
       timeout: 5s
       start_period: 60s
@@ -82,5 +85,84 @@ services:
       retries: 3
     restart: unless-stopped
 
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  incident-responder:
+    build:
+      context: ./incident-responder
+      dockerfile: Dockerfile
+    environment:
+      PROMETHEUS_URL: http://prometheus:9090
+      AUDIT_LOG_PATH: /var/log/responder/audit.jsonl
+    volumes:
+      - incident_responder_audit:/var/log/responder
+    expose:
+      - "8080"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2)"
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"
+    depends_on:
+      incident-responder:
+        condition: service_healthy
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in the root .env file}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:
+  incident_responder_audit:
+  alertmanager_data:
