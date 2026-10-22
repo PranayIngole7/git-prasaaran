@@ -23,7 +23,7 @@ public class GeminiAssistantAnswerGenerator implements AssistantAnswerGenerator 
             RestClient.Builder builder,
             @Value("${gitprasaaran.assistant.gemini.base-url:https://generativelanguage.googleapis.com}") String baseUrl,
             @Value("${gitprasaaran.assistant.gemini.api-key:}") String apiKey,
-            @Value("${gitprasaaran.assistant.gemini.model:gemini-2.5-flash}") String model
+            @Value("${gitprasaaran.assistant.gemini.model:gemini-3.8-flash}") String model
     ) {
         this.restClient = builder.clone().baseUrl(baseUrl).build();
         this.apiKey = apiKey;

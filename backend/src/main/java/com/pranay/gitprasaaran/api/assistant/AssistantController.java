@@ -4,6 +4,8 @@ import com.pranay.gitprasaaran.application.assistant.AssistantService;
 import com.pranay.gitprasaaran.application.assistant.AssistantUnavailableException;
 import com.pranay.gitprasaaran.api.error.ApiError;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,6 +18,9 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/v1/assistant")
 public class AssistantController {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(AssistantController.class);
 
     private final AssistantService assistantService;
 
@@ -32,6 +37,18 @@ public class AssistantController {
     public ResponseEntity<ApiError> handleAssistantUnavailable(
             AssistantUnavailableException ex
     ) {
+        Throwable cause = ex.getCause();
+
+        if (cause == null) {
+            log.warn("Assistant unavailable: {}", ex.getMessage());
+        } else {
+            log.warn(
+                    "Assistant unavailable: {}; cause type: {}",
+                    ex.getMessage(),
+                    cause.getClass().getSimpleName()
+            );
+        }
+
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ApiError(
                         "ASSISTANT_UNAVAILABLE",
