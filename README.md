@@ -6,6 +6,8 @@ Git-Prasaaran transforms Markdown documents stored in Git repositories into secu
 
 Git is the source of truth for published documentation. PostgreSQL stores application metadata and private user-owned Markdown; Redis caches rendered published documents.
 
+---
+
 ## Live Demo
 
 - **Frontend:** https://git-prasaaran.netlify.app/
@@ -14,6 +16,7 @@ Git is the source of truth for published documentation. PostgreSQL stores applic
 - **Source Code:** https://github.com/PranayIngole7/git-prasaaran
 
 > **Note:** The backend uses free-tier hosting. Initial requests may take longer after periods of inactivity.
+
 ---
 
 ## Features
@@ -30,25 +33,74 @@ Git is the source of truth for published documentation. PostgreSQL stores applic
 - Agent extension pack with capability manifests, custom agent instructions, and a Markdown validation hook.
 - Local observability with Prometheus metrics, Grafana dashboards, and Alertmanager alert routing.
 - A bounded, read-only incident responder with allowlisted alerts, diagnostic collection, and JSONL audit logging.
+
 ---
 
 ## Architecture
-```text
-GitHub Repository → Spring Boot Backend → Redis and GitHub API
 
-Private user documents → Spring Boot Backend → PostgreSQL
+flowchart TB
+    %% Clients
+    subgraph CLIENTS["Clients and Integrations"]
+        USER["User / Browser"]
+        AI["AI Client"]
+    end
 
-React Frontend → Spring Boot Backend
+    %% Application layer
+    subgraph APP["Application Layer"]
+        FRONTEND["React Frontend"]
+        BACKEND["Spring Boot Backend<br/>REST API"]
+        MCP["Read-only MCP Server"]
+    end
 
-AI Client → Read-only MCP Server → Backend Document API
+    %% Data and integrations
+    subgraph DATA["Data and External Integrations"]
+        PG[("PostgreSQL<br/>Private User Documents")]
+        REDIS[("Redis<br/>Cache")]
+        GH["GitHub API<br/>Public Documentation"]
+    end
 
-Prometheus → Backend Actuator Metrics → Alert Rules → Alertmanager
-Alertmanager → Bounded Incident Responder → Read-only Diagnostics → JSONL Audit Log
-Grafana → Prometheus Metrics and Service Dashboard
-```
+    %% Observability
+    subgraph OBS["Observability and Incident Response — Local Compose"]
+        PROM["Prometheus<br/>Metrics Collection"]
+        RULES["Alert Rules"]
+        AM["Alertmanager"]
+        IR["Bounded Incident Responder"]
+        AUDIT[("JSONL Audit Log")]
+        GRAFANA["Grafana<br/>Monitoring Dashboard"]
+    end
+
+    USER --> FRONTEND
+    FRONTEND -->|"REST API requests"| BACKEND
+
+    AI --> MCP
+    MCP -->|"Read-only document access"| BACKEND
+
+    BACKEND -->|"Private document storage"| PG
+    BACKEND -->|"Cache operations"| REDIS
+    BACKEND -->|"Public documentation"| GH
+
+    BACKEND -.->|"Actuator metrics"| PROM
+    PROM --> RULES
+    RULES --> AM
+    AM -->|"Alert events"| IR
+    IR -->|"Read-only diagnostics"| PROM
+    IR -->|"Audit records"| AUDIT
+    PROM -->|"Metrics and queries"| GRAFANA
+
+    classDef client fill:#e8f1ff,stroke:#356ac3,color:#172b4d
+    classDef app fill:#e5f5eb,stroke:#27864b,color:#163d25
+    classDef data fill:#fff0d9,stroke:#c47b17,color:#593600
+    classDef monitoring fill:#f0e8ff,stroke:#8054bd,color:#352052
+
+    class USER,AI client
+    class FRONTEND,BACKEND,MCP app
+    class PG,REDIS,GH data
+    class PROM,RULES,AM,IR,AUDIT,GRAFANA monitoring
+
 > GitHub webhooks notify the backend about documentation changes so relevant cache entries can be invalidated.
 
 The local observability stack monitors backend scrape health and elevated HTTP 5xx rates. The incident responder accepts only configured alert names and performs bounded, read-only diagnostics; it does not execute remediation.
+
 ---
 
 ## Technology Stack
@@ -65,6 +117,7 @@ The local observability stack monitors backend scrape health and elevated HTTP 5
 - **Observability:** Prometheus, Grafana, Alertmanager
 - **Incident response:** Python standard-library HTTP responder with JSONL audit logging
 - **CI:** GitHub Actions, including the incident-responder test suite
+
 ---
 
 ## Prerequisites
@@ -76,6 +129,7 @@ Install the following tools:
 - Node.js 22 and npm
 - Docker Engine
 - Docker Compose
+
 ---
 
 ## Local Setup
@@ -175,6 +229,7 @@ curl -i http://localhost:8080/api/v1/documents
 ```
 
 > The document endpoint requires valid GitHub configuration and access.
+
 ---
 
 ## Testing
@@ -269,6 +324,7 @@ For health checks, alert triage, troubleshooting, and responder safety boundarie
 - **[Agent permissions](docs/permissions.md)**
 - **[Agent extension pack](docs/agent-extension-pack.md)**
 - **[Agent team and runtime safety boundaries](docs/agent-team.md)**
+
 ---
 
 ## Security and Limitations
@@ -284,6 +340,7 @@ For health checks, alert triage, troubleshooting, and responder safety boundarie
 - The responder webhook has no application-level authentication and must remain within a trusted local Compose environment.
 - Local webhook delivery is tested, but external email/Slack/paging and end-to-end delivery of a real rule-generated Prometheus alert are not verified.
 - Production uses free-tier hosting; production secret management and independent security auditing require additional work.
+
 ---
 
 ## License and Copyright
@@ -296,3 +353,5 @@ create derivative works is not granted by this notice.
 
 Third-party dependencies and components remain subject to their
 respective licenses.
+
+---
