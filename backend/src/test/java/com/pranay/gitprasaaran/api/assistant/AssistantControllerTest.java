@@ -1,6 +1,7 @@
 package com.pranay.gitprasaaran.api.assistant;
 
 import com.pranay.gitprasaaran.application.assistant.AssistantService;
+import com.pranay.gitprasaaran.application.assistant.AssistantUnavailableException;
 import com.pranay.gitprasaaran.config.security.JwtAuthenticationFilter;
 import com.pranay.gitprasaaran.config.security.JwtService;
 import com.pranay.gitprasaaran.config.security.SecurityConfig;
@@ -95,6 +96,24 @@ class AssistantControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(assistantService, never()).ask(any(AssistantRequest.class));
+    }
+
+    @Test
+    void shouldMapProviderFailureToSanitizedServiceUnavailableResponse() throws Exception {
+        when(assistantService.ask(any(AssistantRequest.class)))
+                .thenThrow(new AssistantUnavailableException("provider details"));
+
+        mockMvc.perform(post("/api/v1/assistant/ask")
+                        .with(user("customer@example.com").roles("CUSTOMER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"repositoryId":1,"question":"Explain this repository"}
+                                """))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("ASSISTANT_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").value(
+                        "The AI assistant is temporarily unavailable. Check the configured provider."
+                ));
     }
 
     @TestConfiguration

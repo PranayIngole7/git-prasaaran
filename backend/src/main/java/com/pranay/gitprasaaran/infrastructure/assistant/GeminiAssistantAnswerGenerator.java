@@ -2,18 +2,23 @@ package com.pranay.gitprasaaran.infrastructure.assistant;
 
 import com.pranay.gitprasaaran.application.assistant.AssistantAnswerGenerator;
 import com.pranay.gitprasaaran.application.assistant.AssistantUnavailableException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
 import java.util.Map;
 
 @Component
 public class GeminiAssistantAnswerGenerator implements AssistantAnswerGenerator {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(GeminiAssistantAnswerGenerator.class);
 
     private final RestClient restClient;
     private final String apiKey;
@@ -80,12 +85,17 @@ public class GeminiAssistantAnswerGenerator implements AssistantAnswerGenerator 
 
             return answer.trim();
         } catch (RestClientException ex) {
-            System.err.println(
-                    "Gemini provider failure: "
-                            + ex.getClass().getSimpleName()
-                            + " - "
-                            + ex.getMessage()
-            );
+            if (ex instanceof RestClientResponseException responseException) {
+                log.warn(
+                        "Gemini provider request failed with HTTP status {}",
+                        responseException.getStatusCode().value()
+                );
+            } else {
+                log.warn(
+                        "Gemini provider request failed ({})",
+                        ex.getClass().getSimpleName()
+                );
+            }
             throw new AssistantUnavailableException(
                     "The configured hosted AI provider is unavailable.",
                     ex
