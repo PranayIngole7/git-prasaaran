@@ -1,0 +1,43 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      previous_version:
+        description: Previous known-good version to restore
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate rollback target (preflight only)
+        env:
+          PREVIOUS_VERSION: ${{ inputs.previous_version }}
+        run: |
+          if [[ ! "$PREVIOUS_VERSION" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
+            echo "Invalid rollback version format." >&2
+            exit 1
+          fi
+          echo "Preflight only: validated rollback target $PREVIOUS_VERSION"
+          echo "No rollback is executed by this workflow."
+      - name: Document artifact verification limitation
+        run: |
+          echo "Artifact existence and provenance are not verified by this preflight workflow."
+          echo "Configure the hosting platform's rollback operation before treating this as operational rollback."
+      - name: Check configured production health endpoint (not rollback verification)
+        env:
+          PROD_HEALTH_URL: ${{ secrets.PROD_HEALTH_URL }}
+        run: |
+          if [ -z "$PROD_HEALTH_URL" ]; then
+            echo "Missing PROD_HEALTH_URL secret; rollback cannot be verified in production without it." >&2
+            exit 1
+          fi
+          curl --fail --silent --show-error "$PROD_HEALTH_URL" >/dev/null

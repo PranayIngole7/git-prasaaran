@@ -1,3 +1,7 @@
+import base64
+import hashlib
+import hmac
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -18,7 +22,21 @@ def make_alert(name="BackendTargetDown", status="firing"):
     }
 
 
+def sign_payload(payload, secret=app.ALERT_WEBHOOK_SECRET):
+    body = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    digest = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
+    return {"X-Signature": f"sha256={digest}"}
+
+
+def basic_auth_headers(username=app.ALERTMANAGER_BASIC_USERNAME, password=app.ALERTMANAGER_BASIC_PASSWORD):
+    token = base64.b64encode(f"{username}:{password}".encode("utf-8")).decode("ascii")
+    return {"Authorization": f"Basic {token}"}
+
+
 class ResponderTests(unittest.TestCase):
+    def setUp(self):
+        app._seen_incidents.clear()
+
     def test_accepts_allowlisted_firing_alert_and_collects_diagnostics(self):
         diagnostics = {
             "prometheus_available": True,
@@ -96,13 +114,34 @@ class ResponderTests(unittest.TestCase):
         self.assertNotIn("\n", event["summary"])
         self.assertLessEqual(len(event["summary"]), 240)
 
+    def test_rejects_missing_signature_for_alert_batch(self):
+        with self.assertRaisesRegex(ValueError, "Missing alert signature"):
+            app.verify_alert_signature({}, b'{"alerts": []}')
+
+    def test_rejects_invalid_signature_for_alert_batch(self):
+        with self.assertRaisesRegex(ValueError, "Invalid alert signature"):
+            app.verify_alert_signature({"X-Signature": "sha256=deadbeef"}, b'{"alerts": []}')
+
+    def test_duplicate_firing_alerts_are_marked_duplicate(self):
+        payload = {"alerts": [make_alert()]}
+        first = app.process_alertmanager_payload(
+            payload,
+            diagnostics_provider=lambda: {"prometheus_available": True, "backend_targets": [{"job": "git-prasaaran-backend", "health": "up"}]},
+        )
+        second = app.process_alertmanager_payload(
+            payload,
+            diagnostics_provider=lambda: {"prometheus_available": True, "backend_targets": [{"job": "git-prasaaran-backend", "health": "up"}]},
+        )
+        self.assertFalse(first[0]["deduplicated"])
+        self.assertTrue(second[0]["deduplicated"])
+        self.assertEqual(second[0]["incident_state"], "duplicate")
+
     def test_audit_event_is_jsonl(self):
         event = {"alertname": "BackendTargetDown", "remediation_executed": False}
         with tempfile.TemporaryDirectory() as directory:
             audit_path = Path(directory) / "audit.jsonl"
             with patch.object(app, "AUDIT_LOG_PATH", audit_path):
                 app.append_audit_event(event)
-            import json
             stored = json.loads(audit_path.read_text().strip())
             self.assertEqual(stored["alertname"], "BackendTargetDown")
             self.assertFalse(stored["remediation_executed"])

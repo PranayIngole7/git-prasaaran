@@ -52,7 +52,8 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
     ports:
-      - "127.0.0.1:8081:8080"
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8081:8081"
     depends_on:
       postgres:
         condition: service_healthy
@@ -108,6 +109,9 @@ services:
     environment:
       PROMETHEUS_URL: http://prometheus:9090
       AUDIT_LOG_PATH: /var/log/responder/audit.jsonl
+      ALERT_WEBHOOK_SECRET: ${ALERT_WEBHOOK_SECRET:-dev-local-only-secret}
+      ALERTMANAGER_WEBHOOK_USERNAME: ${ALERTMANAGER_WEBHOOK_USERNAME:-alertmanager}
+      ALERTMANAGER_WEBHOOK_PASSWORD: ${ALERTMANAGER_WEBHOOK_PASSWORD:-dev-alertmanager-secret}
     volumes:
       - incident_responder_audit:/var/log/responder
     expose:

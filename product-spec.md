@@ -144,7 +144,18 @@ Production publishing remains under explicit human-controlled Git workflows.
 5. The owner can create, read, update, or delete their own Markdown documents.
 6. Other users receive the same not-found response as for a missing document.
 
-## 6. Functional Requirements
+## 6. Requirement Traceability and Acceptance Criteria
+
+The following traceability links map user-facing concerns to implementation and validation evidence.
+
+| User problem                                   | Journey                  | Requirement                                          | Acceptance criteria                                                                                   | Issue draft             | Implementation evidence                          | Test evidence                                |
+| ---------------------------------------------- | ------------------------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------ | -------------------------------------------- |
+| New contributors cannot start the app reliably | local startup            | reproducible single-command startup                  | `make dev-up` validates env and starts required services                                              | `docs/rubric-issues.md` | `Makefile`, `.env.example`, `docker-compose.yml` | `make -n dev-up`, `docker compose config`    |
+| Monitoring is hard to interpret                | observe metrics and logs | real user-journey observability                      | requests share trace IDs and are visible in metrics/logs                                              | `docs/rubric-issues.md` | `monitoring/*.yml`, backend telemetry config     | static config + responder/observability docs |
+| Incident alerts can be spoofed or duplicated   | responder intake         | secure bounded responder                             | signatures and deduplication are enforced                                                             | `docs/rubric-issues.md` | `incident-responder/app.py`                      | responder unit tests                         |
+| CI/CD lacks deployment and rollback process    | release workflow         | documented promotion and rollback workflow scaffolds | workflow scaffolds exist; deployment, artifact promotion, and rollback execution remain unimplemented | `docs/rubric-issues.md` | `.github/workflows/*.yml`                        | workflow structure and validation            |
+
+## 7. Functional Requirements
 
 ### FR-01 — Document Listing
 

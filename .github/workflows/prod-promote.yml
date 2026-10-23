@@ -1,0 +1,44 @@
+name: Production Promotion
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Immutable image tag or release version to promote
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  promote-production:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://git-prasaaran.netlify.app/
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate requested version (preflight only)
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          if [[ ! "$IMAGE_TAG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
+            echo "Invalid version format." >&2
+            exit 1
+          fi
+          echo "Preflight only: validated requested version $IMAGE_TAG"
+          echo "No production promotion is executed by this workflow."
+      - name: Confirm production health before promotion
+        env:
+          PROD_HEALTH_URL: ${{ secrets.PROD_HEALTH_URL }}
+        run: |
+          if [ -z "$PROD_HEALTH_URL" ]; then
+            echo "Missing PROD_HEALTH_URL secret; repository admin must configure it before production promotion." >&2
+            exit 1
+          fi
+          curl --fail --silent --show-error "$PROD_HEALTH_URL" >/dev/null
+      - name: Explain environment approval requirements
+        run: |
+          echo "This workflow does not promote a release."
+          echo "A real approval gate requires required reviewers configured in GitHub Environment settings."

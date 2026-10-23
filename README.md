@@ -132,6 +132,23 @@ Install the following tools:
 
 ## Local Setup
 
+A reproducible local startup path is available from the project root:
+
+```bash
+cp .env.example .env
+# edit .env to set your GitHub and JWT values
+make dev-up
+```
+
+Useful management commands:
+
+```bash
+make dev-logs
+make dev-down
+```
+
+The startup target validates the local toolchain and required environment keys before starting Docker Compose services.
+
 ### 1. Start Infrastructure
 
 From the project root, run:
@@ -160,16 +177,20 @@ export GITHUB_BRANCH=main
 export GITHUB_CONTENT_PATH=docs
 export GEMINI_API_KEY=YOUR_GEMINI_API_KEY
 ```
+
 > `GEMINI_API_KEY` is optional for local startup but must be configured to use the Gemini-powered documentation Q&A feature.
 
 - Start the backend:
+
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
+
 ### 3. Start the Frontend
 
 - Open another terminal and run:
+
 ```bash
 cd ~/ai-dev-tool-zoomcamp/projects/git-prasaaran/frontend
 npm ci
@@ -177,11 +198,13 @@ cp .env.example .env.local
 ```
 
 - Set the following variable in frontend/.env.local:
+
 ```bash
 VITE_API_BASE_URL=http://localhost:8080
 ```
 
 - Start the frontend:
+
 ```bash
 npm run dev
 ```
@@ -193,12 +216,14 @@ npm run dev
 ### 4. Start the MCP Server
 
 Open another terminal and run:
+
 ```bash
 cd ~/ai-dev-tool-zoomcamp/projects/git-prasaaran/mcp-server
 npm ci
 npm run build
 BACKEND_BASE_URL=http://localhost:8080 npm start
 ```
+
 The MCP server uses standard input/output (stdio) transport and is intended to be launched by an MCP-compatible client.
 
 **Available tools:**
@@ -212,16 +237,19 @@ Search is literal and case-insensitive, not semantic.
 ### 5. Verify the Backend
 
 With the backend running, execute:
+
 ```bash
 curl -i http://localhost:8080/api/v1/health
 ```
 
 Check the Spring Boot Actuator health endpoint:
+
 ```bash
 curl -i http://localhost:8080/actuator/health
 ```
 
 Check the documentation endpoint:
+
 ```bash
 curl -i http://localhost:8080/api/v1/documents
 ```
@@ -233,12 +261,14 @@ curl -i http://localhost:8080/api/v1/documents
 ## Testing
 
 ### Backend Tests
+
 ```bash
 cd backend
 ./mvnw --batch-mode test
 ```
 
 ### Frontend Tests, Lint, and Production Build
+
 ```bash
 cd frontend
 npm ci
@@ -248,6 +278,7 @@ npm run build
 ```
 
 ### MCP Tests and Build
+
 ```bash
 cd mcp-server
 npm ci
@@ -258,6 +289,7 @@ npm run build
 ### Agent Hook Tests
 
 Run from the project root:
+
 ```bash
 node --test agent-hooks/tests/validate-markdown.test.mjs
 ```
@@ -303,7 +335,7 @@ Local interfaces are bound to loopback:
 
 The provisioned Grafana dashboard shows backend scrape status, request rate, HTTP 5xx rate, and JVM heap usage. Prometheus evaluates `BackendTargetDown` and `BackendHighServerErrorRate` rules and routes alerts to Alertmanager. Alertmanager sends webhook events to the bounded incident responder, which records sanitized audit events and whether human review is required.
 
-**Limitations:** local Alertmanager-to-responder webhook delivery and audit logging have been tested. A real Prometheus rule-generated alert has not been verified end-to-end. The responder webhook has no application-level authentication and is intended only for a trusted local Compose environment. External email, Slack, and paging integrations are not configured. The responder does not perform automatic remediation or page a human operator.
+**Limitations:** local Alertmanager-to-responder webhook delivery and audit logging have been tested. A controlled local Prometheus rule-generated alert and backend outage were verified end-to-end through responder escalation, resolution notification, and service recovery. Production incident handling and automatic remediation remain unverified. The responder webhook requires Basic authentication or an HMAC-SHA256 signature. The current Compose configuration uses local-development credentials; production credential management is not configured. Keep the endpoint on a trusted network. External email, Slack, and paging integrations are not configured. The responder does not perform automatic remediation or page a human operator.
 
 For health checks, alert triage, troubleshooting, and responder safety boundaries, see the [Operations Guide](ops/README.md).
 
@@ -326,6 +358,7 @@ For health checks, alert triage, troubleshooting, and responder safety boundarie
 ---
 
 ## Security and Limitations
+
 - Never commit credentials, signing secrets, or production environment files.
 - Local Docker Compose credentials are for development only.
 - Published GitHub document endpoints are public; private-document endpoints require JWT authentication and enforce per-user ownership.
@@ -335,8 +368,8 @@ For health checks, alert triage, troubleshooting, and responder safety boundarie
 - MCP exposes read-only documentation tools but inherits the backend document API's access model.
 - The capability manifest and agent instructions describe intended permissions; they are not a security sandbox.
 - The local incident responder performs bounded, read-only diagnostics and writes sanitized audit records; it does not execute automatic remediation.
-- The responder webhook has no application-level authentication and must remain within a trusted local Compose environment.
-- Local webhook delivery is tested, but external email/Slack/paging and end-to-end delivery of a real rule-generated Prometheus alert are not verified.
+- The responder webhook requires either Alertmanager Basic authentication or an HMAC-SHA256 signature. Development defaults must be overridden outside local testing, and the endpoint should remain on a trusted network.
+- Local webhook delivery and a controlled Prometheus rule-generated alert were verified through responder escalation, resolution notification, and backend recovery. Production incident handling, external email/Slack/paging, and automatic remediation remain unverified.
 - Production uses free-tier hosting; production secret management and independent security auditing require additional work.
 
 ---

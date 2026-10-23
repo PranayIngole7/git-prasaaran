@@ -4,10 +4,14 @@ Only known alert names and fixed, read-only Prometheus endpoints are allowed.
 No shell commands, automatic remediation, or arbitrary URLs are accepted.
 """
 
+import base64
+import hashlib
+import hmac
 import json
 import os
 import re
 import threading
+import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -21,6 +25,32 @@ ALLOWED_ALERTS = {
 ALLOWED_STATUSES = {"firing", "resolved"}
 MAX_BODY_BYTES = 1_048_576
 MAX_ALERTS = 100
+ALERT_WEBHOOK_SECRET = os.environ.get("ALERT_WEBHOOK_SECRET", "dev-local-only-secret")
+ALERTMANAGER_BASIC_USERNAME = os.environ.get("ALERTMANAGER_WEBHOOK_USERNAME", "alertmanager")
+ALERTMANAGER_BASIC_PASSWORD = os.environ.get("ALERTMANAGER_WEBHOOK_PASSWORD", "dev-alertmanager-secret")
+ALERT_SIGNATURE_HEADER_NAMES = (
+    "X-Signature",
+    "X-Webhook-Signature",
+    "X-Alertmanager-Signature",
+)
+ALERT_DEDUP_TTL_SECONDS = int(os.environ.get("ALERT_DEDUP_TTL_SECONDS", "300"))
+SAFE_ACTION_REGISTRY = {
+    "BackendTargetDown": ["diagnostic_check", "escalate_human_review"],
+    "BackendHighServerErrorRate": ["diagnostic_check", "escalate_human_review"],
+}
+APPROVAL_REQUIRED_ACTIONS = {"escalate_human_review"}
+ACTION_TIMEOUT_SECONDS = {
+    "diagnostic_check": 3,
+    "escalate_human_review": 2,
+}
+ACTION_MAX_RETRIES = {
+    "diagnostic_check": 2,
+    "escalate_human_review": 0,
+}
+ACTION_COOLDOWN_SECONDS = {
+    "diagnostic_check": 90,
+    "escalate_human_review": 300,
+}
 
 PROMETHEUS_URL = os.environ.get(
     "PROMETHEUS_URL", "http://localhost:9090"
@@ -30,6 +60,7 @@ AUDIT_LOG_PATH = Path(
 )
 
 _audit_lock = threading.Lock()
+_seen_incidents = {}
 
 
 def utc_now():
@@ -42,6 +73,88 @@ def safe_text(value, limit=240):
         return ""
     value = re.sub(r"[\x00-\x1f\x7f]", " ", value)
     return value[:limit]
+
+
+def alert_signature_for_body(body: bytes, secret: str = ALERT_WEBHOOK_SECRET) -> str:
+    """Return a signed webhook digest that is safe to pass as a request header."""
+    digest = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
+    return f"sha256={digest}"
+
+
+def verify_alert_signature(headers, body: bytes, secret: str = ALERT_WEBHOOK_SECRET):
+    """Validate a constant-time HMAC signature for Alertmanager webhooks."""
+    if not isinstance(body, (bytes, bytearray)):
+        raise ValueError("Request body must be bytes")
+
+    provided = ""
+    for header_name in ALERT_SIGNATURE_HEADER_NAMES:
+        header_value = headers.get(header_name)
+        if isinstance(header_value, str):
+            provided = header_value.strip()
+            break
+    if not provided:
+        raise ValueError("Missing alert signature")
+
+    expected = alert_signature_for_body(bytes(body), secret)
+    if not hmac.compare_digest(expected, provided):
+        raise ValueError("Invalid alert signature")
+    return True
+
+
+def validate_basic_auth(headers):
+    """Accept only the configured Alertmanager credentials for the authenticated boundary."""
+    auth_header = headers.get("Authorization")
+    if not isinstance(auth_header, str) or not auth_header.startswith("Basic "):
+        raise ValueError("Missing or invalid basic auth")
+    token = auth_header.split(" ", 1)[1]
+    expected = base64.b64encode(
+        f"{ALERTMANAGER_BASIC_USERNAME}:{ALERTMANAGER_BASIC_PASSWORD}".encode("utf-8")
+    ).decode("ascii")
+    if not hmac.compare_digest(token, expected):
+        raise ValueError("Unauthorized Alertmanager client")
+    return True
+
+
+def verify_alert_auth(headers, body: bytes, secret: str = ALERT_WEBHOOK_SECRET):
+    """Accept either the Alertmanager basic-auth boundary or a compatible HMAC signature."""
+    auth_header = headers.get("Authorization")
+    has_signature = any(
+        isinstance(headers.get(name), str) and headers.get(name).strip()
+        for name in ALERT_SIGNATURE_HEADER_NAMES
+    )
+
+    if isinstance(auth_header, str) and auth_header.startswith("Basic "):
+        validate_basic_auth(headers)
+        if has_signature:
+            verify_alert_signature(headers, body, secret)
+        return True
+
+    if has_signature:
+        verify_alert_signature(headers, body, secret)
+        return True
+
+    raise ValueError("Missing alert authentication")
+
+
+def alert_fingerprint(alert):
+    """Return a deduplication key for a firing/resolved alert event."""
+    if not isinstance(alert, dict):
+        return None
+    labels = alert.get("labels", {})
+    if not isinstance(labels, dict):
+        return None
+    name = labels.get("alertname")
+    service = labels.get("service")
+    summary = ""
+    annotations = alert.get("annotations", {})
+    if isinstance(annotations, dict):
+        summary = annotations.get("summary", "")
+    return (
+        safe_text(str(name), 64),
+        safe_text(str(alert.get("status", "")), 32),
+        safe_text(str(service), 64),
+        safe_text(str(summary), 240),
+    )
 
 
 def get_json_from_fixed_endpoint(path):
@@ -97,6 +210,98 @@ def collect_diagnostics():
     }
 
 
+def verify_backend_health(base_url=None, timeout=2):
+    """Perform a bounded, read-only health check against the local backend."""
+    candidates = []
+    if base_url:
+        candidates.append(base_url.rstrip("/"))
+    candidates.extend([
+        "http://backend:8081/actuator/health",
+        "http://localhost:8081/actuator/health",
+        "http://localhost:8080/api/v1/health",
+    ])
+
+    for candidate in candidates:
+        try:
+            with urlopen(candidate, timeout=timeout) as response:
+                if response.status != 200:
+                    continue
+                payload = json.loads(response.read(1024).decode("utf-8"))
+                status = payload.get("status") if isinstance(payload, dict) else None
+                if status in {"UP", "ok"}:
+                    return True
+        except Exception:
+            continue
+    raise RuntimeError("Backend health verification failed")
+
+
+def get_allowed_actions(alert_name):
+    """Return the allowlisted remediation actions for a supported alert."""
+    if alert_name not in SAFE_ACTION_REGISTRY:
+        return []
+    return list(SAFE_ACTION_REGISTRY[alert_name])
+
+
+def execute_allowed_action(alert_name, diagnostics, recovery_check=None):
+    """Run only a bounded, explicitly allowlisted action for a known alert."""
+    actions = get_allowed_actions(alert_name)
+    if not actions:
+        raise ValueError("Alert name is not allowlisted")
+
+    action = actions[0]
+    approval_required = action in APPROVAL_REQUIRED_ACTIONS
+    result = {
+        "action": action,
+        "approval_required": approval_required,
+        "remediation_executed": False,
+        "incident_state": "investigating",
+        "verification": {"status": "not_run", "verified": False},
+    }
+
+    if action == "diagnostic_check":
+        try:
+            if diagnostics.get("prometheus_available") is False:
+                raise RuntimeError("Prometheus diagnostics unavailable")
+
+            targets = diagnostics.get("backend_targets", [])
+            healthy_targets = [
+                target for target in targets
+                if isinstance(target, dict) and target.get("job") == "git-prasaaran-backend"
+            ]
+
+            if not healthy_targets or any(
+                target.get("health") not in {"up", "healthy"}
+                for target in healthy_targets
+            ):
+                if recovery_check is None:
+                    recovery_check = verify_backend_health
+                passed = bool(recovery_check())
+            else:
+                passed = True
+
+            result["verification"] = {
+                "status": "passed" if passed else "failed",
+                "verified": passed,
+            }
+            result["incident_state"] = "recovered" if passed else "failed"
+            result["remediation_executed"] = False
+            result["escalation_required"] = not passed
+        except Exception as exc:
+            result["verification"] = {"status": "failed", "verified": False}
+            result["incident_state"] = "escalated"
+            result["escalation_required"] = True
+            result["reason"] = safe_text(str(exc), 120)
+        return result
+
+    if action == "escalate_human_review":
+        result["incident_state"] = "awaiting_approval"
+        result["escalation_required"] = True
+        result["reason"] = "Manual approval required before any disruptive action"
+        return result
+
+    raise ValueError("Unsupported remediation action")
+
+
 def process_alertmanager_payload(payload, diagnostics_provider=collect_diagnostics):
     """Validate an Alertmanager webhook and return safe audit events."""
     if not isinstance(payload, dict):
@@ -123,22 +328,41 @@ def process_alertmanager_payload(payload, diagnostics_provider=collect_diagnosti
         if not isinstance(status, str) or status not in ALLOWED_STATUSES:
             raise ValueError("Alert status is not supported")
 
+        summary = safe_text(
+            alert.get("annotations", {}).get("summary", "")
+            if isinstance(alert.get("annotations", {}), dict)
+            else ""
+        )
         event = {
             "timestamp": utc_now(),
             "alertname": name,
             "status": status,
             "severity": safe_text(labels.get("severity"), 32),
             "service": safe_text(labels.get("service"), 64),
-            "summary": safe_text(
-                alert.get("annotations", {}).get("summary", "")
-                if isinstance(alert.get("annotations", {}), dict)
-                else ""
-            ),
+            "summary": summary,
             "action": "human_review_required",
             "remediation_executed": False,
+            "deduplicated": False,
+            "incident_state": "received",
+            "approval_required": False,
         }
 
+        fingerprint = alert_fingerprint(alert)
+        if fingerprint is not None:
+            now = time.time()
+            previous = _seen_incidents.get(fingerprint)
+            if previous is not None and (now - previous) < ALERT_DEDUP_TTL_SECONDS:
+                event["deduplicated"] = True
+                event["incident_state"] = "duplicate"
+                event["action"] = "duplicate_rejected"
+                event["diagnostics"] = {"collection_skipped": True}
+                event["escalation_required"] = False
+                events.append(event)
+                continue
+            _seen_incidents[fingerprint] = now
+
         if status == "firing":
+            event["incident_state"] = "authenticated"
             try:
                 diagnostics = diagnostics_provider()
                 if not isinstance(diagnostics, dict):
@@ -151,13 +375,30 @@ def process_alertmanager_payload(payload, diagnostics_provider=collect_diagnosti
                         for target in diagnostics.get("backend_targets", [])
                     )
                 )
+                action_result = execute_allowed_action(
+                    name,
+                    diagnostics,
+                    recovery_check=lambda: verify_backend_health(),
+                )
+                event["action"] = action_result["action"]
+                event["approval_required"] = action_result.get("approval_required", False)
+                event["remediation_executed"] = action_result.get("remediation_executed", False)
+                event["incident_state"] = action_result["incident_state"]
+                event["verification"] = action_result["verification"]
+                event["escalation_required"] = bool(action_result.get("escalation_required", event["escalation_required"]))
+                if "reason" in action_result:
+                    event["reason"] = action_result["reason"]
             except Exception:
-                # Alert receipt must not trigger unsafe fallback behavior.
                 event["diagnostics"] = {"prometheus_available": False}
+                event["incident_state"] = "escalated"
+                event["action"] = "escalate_human_review"
+                event["approval_required"] = True
                 event["escalation_required"] = True
         else:
             event["diagnostics"] = {"collection_skipped": True}
             event["escalation_required"] = False
+            event["incident_state"] = "resolved"
+            event["action"] = "resolved"
 
         events.append(event)
 
@@ -208,8 +449,15 @@ class ResponderHandler(BaseHTTPRequestHandler):
             self.send_error(413, "Invalid or oversized request body")
             return
 
+        raw_body = self.rfile.read(length)
         try:
-            payload = json.loads(self.rfile.read(length))
+            verify_alert_auth(self.headers, raw_body)
+        except ValueError as exc:
+            self.send_error(401, safe_text(str(exc), 120))
+            return
+
+        try:
+            payload = json.loads(raw_body.decode("utf-8"))
             events = process_alertmanager_payload(payload)
             for event in events:
                 append_audit_event(event)
@@ -223,6 +471,7 @@ class ResponderHandler(BaseHTTPRequestHandler):
         body = json.dumps({
             "accepted": len(events),
             "remediation_executed": False,
+            "duplicate_alerts": sum(1 for event in events if event.get("deduplicated")),
         }).encode("utf-8")
         self.send_response(202)
         self.send_header("Content-Type", "application/json")

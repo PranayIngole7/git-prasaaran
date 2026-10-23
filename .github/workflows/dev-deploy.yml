@@ -1,0 +1,102 @@
+name: CI and Development Deployment Preflight
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: gitprasaaran
+          POSTGRES_USER: gitprasaaran
+          POSTGRES_PASSWORD: gitprasaaran
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gitprasaaran -d gitprasaaran"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Backend tests
+        working-directory: backend
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/gitprasaaran
+          DB_USERNAME: gitprasaaran
+          DB_PASSWORD: gitprasaaran
+          REDIS_HOST: localhost
+          REDIS_PORT: '6379'
+          JWT_SECRET: ci-only-secret-do-not-use-outside-tests
+          GITHUB_OWNER: example
+          GITHUB_REPOSITORY: example-docs
+          GITHUB_BRANCH: main
+          GITHUB_CONTENT_PATH: docs
+        run: ./mvnw --batch-mode test
+      - name: Frontend checks
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test -- --run
+          npm run lint
+          npm run build
+      - name: MCP checks
+        working-directory: mcp-server
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: Incident responder checks
+        run: |
+          PYTHONPATH=incident-responder python3 -m unittest discover -s incident-responder/tests -p 'test_*.py' -v
+
+  deployment-preflight:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve immutable image tag
+        id: version
+        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - name: Validate deployment secrets are configured
+        env:
+          DEV_HOST: ${{ secrets.DEV_HOST }}
+          DEV_SSH_KEY: ${{ secrets.DEV_SSH_KEY }}
+        run: |
+          if [ -z "$DEV_HOST" ] || [ -z "$DEV_SSH_KEY" ]; then
+            echo "Required development deployment secrets are not configured. See ops/README.md for manual setup." >&2
+            exit 1
+          fi
+      - name: Confirm development deployment configuration (preflight only)
+        run: |
+          echo "Preflight passed: development target is configured."
+          echo "No secret or credential values are printed by this workflow."
+        env:
+          DEV_HOST: ${{ secrets.DEV_HOST }}

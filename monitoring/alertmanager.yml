@@ -16,3 +16,7 @@ receivers:
       - url: http://incident-responder:8080/api/v1/alerts
         send_resolved: true
         max_alerts: 100
+        http_config:
+          basic_auth:
+            username: alertmanager
+            password: dev-alertmanager-secret
