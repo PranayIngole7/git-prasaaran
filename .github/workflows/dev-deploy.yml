@@ -36,12 +36,18 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Create PostgreSQL integration test database
+        env:
+          PGPASSWORD: gitprasaaran
+        run: createdb --host localhost --username gitprasaaran gitprasaaran_integration_test
         with:
           node-version: '22'
       - name: Backend tests
@@ -81,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: development
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Resolve immutable image tag
         id: version
         run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
